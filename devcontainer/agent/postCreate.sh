@@ -88,3 +88,7 @@ if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
             || claude plugin install "$plugin" --scope user
     done < <(jq -r '.plugins[]' "$PLUGINS_FILE")
 fi
+
+# Aliases to start claude on the container
+echo "alias cc='claude'" >> /home/dev/.bash_aliases
+echo "alias ccd='claude --dangerously-skip-permissions'" >> /home/dev/.bash_aliases
