@@ -58,6 +58,12 @@ fi
 # because npm only exists after the node feature is layered onto the image.
 command -v typescript-language-server >/dev/null 2>&1 || npm install -g typescript typescript-language-server
 
+# pyright backs the "python" MCP server (claude/mcp-servers.json), which
+# runs mcp-language-server as a local stdio process against /workdir.
+# Installed here rather than in agent/Dockerfile because uv only exists
+# after the uv feature is layered onto the image.
+command -v pyright-langserver >/dev/null 2>&1 || uv tool install pyright
+
 # Install the Claude Code plugins declared in plugins.json (tracked in this
 # repo) idempotently, on every container creation. Marketplaces are matched
 # by GitHub source ("owner/repo"); plugins by their installed "id"

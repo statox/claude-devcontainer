@@ -6,5 +6,9 @@
   "typescript": {
     "command": "mcp-language-server",
     "args": ["--workspace", "/workdir", "--lsp", "typescript-language-server", "--", "--stdio"]
+  },
+  "python": {
+    "command": "mcp-language-server",
+    "args": ["--workspace", "/workdir", "--lsp", "pyright-langserver", "--", "--stdio"]
   }
 }
