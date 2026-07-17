@@ -1,0 +1,9 @@
+# Podman override for docker-compose.yml, merged in automatically by
+# lib/engine.sh's COMPOSE_FILES when running under Podman.
+#
+# `security_opt: apparmor:unconfined` in the base file is Docker/AppArmor
+# specific and not meaningful under Podman's confinement model — clear it
+# here rather than have it error or no-op silently.
+services:
+  claude-desktop-notification:
+    security_opt: []
