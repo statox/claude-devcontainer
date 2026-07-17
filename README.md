@@ -4,6 +4,16 @@ A per-repo development container for running Claude Code, with a small
 always-on "broker" container that gives it a safe, narrow path to host
 resources.
 
+## Requirements
+
+For now the setup has only been tested on linux + docker.
+
+System requirements:
+
+- `docker` (TODO podman)
+- `node` + `npx` (TODO use other sources for devcontainer/cli
+- If using VSCode: The devcontainer extension
+
 ## Goals
 
 - **Per-repo agent container.** Every repo gets its own container (`agent`),
