@@ -17,7 +17,7 @@ fi
 DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
 DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
-# shellcheck source=lib/engine.sh disable=SC1091
+# shellcheck source=lib/engine.sh
 source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
 
 WORKSPACE_FOLDER="$(pwd)"

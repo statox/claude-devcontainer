@@ -15,7 +15,7 @@ fi
 DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
 DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
-# shellcheck source=lib/engine.sh disable=SC1091
+# shellcheck source=lib/engine.sh
 source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
 
 WORKSPACE_FOLDER="$(pwd)"
@@ -29,7 +29,7 @@ DEV_UID="$(id -u)"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
 # Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
-# shellcheck disable=SC2086
+# shellcheck disable=SC2086  # intentional word-splitting of script-controlled COMPOSE_FILES
 (cd "$DEVCONTAINER_DIR" && $COMPOSE_CMD $COMPOSE_FILES up -d --wait)
 
 # Create/start the workspace-scoped agent container (idempotent: reuses the

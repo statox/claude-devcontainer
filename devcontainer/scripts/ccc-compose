@@ -23,5 +23,5 @@ export DEV_UID
 DEV_UID="$(id -u)"
 
 cd "$DEVCONTAINER_DIR"
-# shellcheck disable=SC2086
+# shellcheck disable=SC2086  # intentional word-splitting of script-controlled COMPOSE_FILES
 exec $COMPOSE_CMD $COMPOSE_FILES "$@"

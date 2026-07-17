@@ -2,8 +2,14 @@
 # lib/engine.sh's COMPOSE_FILES when running under Podman.
 #
 # `security_opt: apparmor:unconfined` in the base file is Docker/AppArmor
-# specific and not meaningful under Podman's confinement model — clear it
-# here rather than have it error or no-op silently.
+# specific and not meaningful under Podman's confinement model. The `!reset`
+# tag (Compose Specification, v2.24+) ensures the override actually clears the
+# base value, since Docker Compose normally concatenates list-type fields
+# rather than replacing them.
+#
+# NOTE: Whether `podman compose` honors the `!reset` tag is unverified in this
+# environment and should be confirmed during the real Podman end-to-end test
+# (deferred to Task 8 manual verification).
 services:
   claude-desktop-notification:
-    security_opt: []
+    security_opt: !reset []
