@@ -15,6 +15,9 @@ fi
 DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
 DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
+# shellcheck source=lib/engine.sh disable=SC1091
+source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
+
 WORKSPACE_FOLDER="$(pwd)"
 
 # Passed into the devcontainer so files created there are owned by the host user.
@@ -26,22 +29,23 @@ DEV_UID="$(id -u)"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
 # Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
-docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
+# shellcheck disable=SC2086
+(cd "$DEVCONTAINER_DIR" && $COMPOSE_CMD $COMPOSE_FILES up -d --wait)
 
 # Create/start the workspace-scoped agent container (idempotent: reuses the
 # existing container for this workspace folder if one is already running,
 # so running this script twice from the same directory attaches two VS Code
 # windows to the same container rather than creating a second one).
-npx @devcontainers/cli up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON"
+npx @devcontainers/cli up --docker-path "$ENGINE_BIN" --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON"
 
 # Find the container the CLI just created/reused, via the same
 # `devcontainer.local_folder` label the CLI itself uses for this lookup.
-CONTAINER_ID="$(docker ps -q --filter "label=devcontainer.local_folder=${WORKSPACE_FOLDER}")"
+CONTAINER_ID="$("$ENGINE_BIN" ps -q --filter "label=devcontainer.local_folder=${WORKSPACE_FOLDER}")"
 if [ -z "$CONTAINER_ID" ]; then
     echo "ccc-code: could not find a running agent container for $WORKSPACE_FOLDER" >&2
     exit 1
 fi
-CONTAINER_NAME="$(docker inspect -f '{{.Name}}' "$CONTAINER_ID")" # includes leading "/"
+CONTAINER_NAME="$("$ENGINE_BIN" inspect -f '{{.Name}}' "$CONTAINER_ID")" # includes leading "/"
 
 # NOTE: `vscode-remote://attached-container+<hex>` is an UNDOCUMENTED,
 # internal VS Code URI scheme (reverse-engineered from community write-ups,
