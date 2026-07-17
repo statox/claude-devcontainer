@@ -1,0 +1,20 @@
+#!/bin/bash
+# Thin wrapper around `docker compose` for the global singleton services
+# project (broker, mcp-everything, ...), for diagnostics (e.g.
+# `ccc-compose logs -f`, `ccc-compose ps`, `ccc-compose down`). These
+# services are normally started automatically by ccc; use this script
+# directly when you need to inspect or manage them outside of that flow.
+#
+# Usage: ccc-compose <any docker compose subcommand/args>
+set -euo pipefail
+
+if [ -z "${CLAUDE_DEVCONTAINER_HOME:-}" ]; then
+    echo "ccc-compose: CLAUDE_DEVCONTAINER_HOME is not set. See README.md for setup." >&2
+    exit 1
+fi
+
+# Passed through so the compose file's UID interpolation resolves correctly.
+export DEV_UID
+DEV_UID="$(id -u)"
+
+exec docker compose -f "$CLAUDE_DEVCONTAINER_HOME/devcontainer/docker-compose.yml" "$@"
