@@ -17,6 +17,9 @@ fi
 DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
 DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
+# shellcheck source=lib/engine.sh disable=SC1091
+source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
+
 WORKSPACE_FOLDER="$(pwd)"
 
 # Passed into the devcontainer so files created there are owned by the host user.
@@ -29,14 +32,16 @@ mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
 # Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
 echo "Start up singleton services"
-docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
+# shellcheck disable=SC2086  # intentional word-splitting of script-controlled COMPOSE_FILES
+(cd "$DEVCONTAINER_DIR" && $COMPOSE_CMD $COMPOSE_FILES up -d --wait)
 
 # Force a fresh container and image build, then exec a shell in it.
 echo "Rebuild devcontainer"
 npx @devcontainers/cli up \
+    --docker-path "$ENGINE_BIN" \
     --workspace-folder "$WORKSPACE_FOLDER" \
     --config "$DEVCONTAINER_JSON" \
     --remove-existing-container
 
 echo "Start devcontainer"
-exec npx @devcontainers/cli exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" bash
+exec npx @devcontainers/cli exec --docker-path "$ENGINE_BIN" --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" bash
