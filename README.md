@@ -360,34 +360,40 @@ The rebuild time can get fairly long:
 This is normal devcontainer behavior but can get annoying when iterating on
 this setup.
 
-**Tried and rejected: a local devcontainer feature.** The plan was to move
-`postCreate.sh` and the extra apt packages into a local devcontainer
-feature, pinned to install last via `overrideFeatureInstallOrder`, so
-editing them would only rebuild that one feature's layer. This doesn't work
-with this setup's architecture: the devcontainers CLI resolves local
-feature paths against the `.devcontainer/` folder inside the **workspace
-folder** (whichever repo you `cd`'d into), not against the directory
-holding `devcontainer.json` (`$CLAUDE_DEVCONTAINER_HOME/devcontainer`,
-deliberately outside every target repo). Those are different directories by
-design — that's exactly what lets one shared config work across every repo
-without writing anything into them. Local features fundamentally require
-the opposite (config and workspace collocated under one `.devcontainer/`
-folder), so the build fails with `Local file path parse error. Resolved
-path must be a child of the .devcontainer/ folder.` regardless of how the
-feature paths are written. There's no flag or path trick around it; see
-[microsoft/vscode-remote-release#11356](https://github.com/microsoft/vscode-remote-release/issues/11356).
+Reviewed options:
 
-**Also considered: a base-image split.** Build a separate "base" image
-containing just the upstream features, tag it, then have `agent/Dockerfile`
-do `FROM` that tag plus the apt packages and `postCreate.sh` on top, with
-`features` removed from the main `devcontainer.json`. This would give real
-cache separation for both, but requires a second build pipeline (its own
-`devcontainer.json`, a manual build/tag step, remembering to redo it on
-every feature/package bump) for a problem that's mostly caused by one file.
-Set aside for now in favor of keeping the setup as one self-contained
-config; worth revisiting if the rebuild time becomes a bigger problem than
-the added maintenance.
+- **Local devcontainer feature.** The plan was to move
+  `postCreate.sh` and the extra apt packages into a local devcontainer
+  feature, pinned to install last via `overrideFeatureInstallOrder`, so
+  editing them would only rebuild that one feature's layer. This doesn't work
+  with this setup's architecture: the devcontainers CLI resolves local
+  feature paths against the `.devcontainer/` folder inside the **workspace
+  folder** (whichever repo you `cd`'d into), not against the directory
+  holding `devcontainer.json` (`$CLAUDE_DEVCONTAINER_HOME/devcontainer`,
+  deliberately outside every target repo). Those are different directories by
+  design — that's exactly what lets one shared config work across every repo
+  without writing anything into them. Local features fundamentally require
+  the opposite (config and workspace collocated under one `.devcontainer/`
+  folder), so the build fails with `Local file path parse error. Resolved
+  path must be a child of the .devcontainer/ folder.` regardless of how the
+  feature paths are written. There's no flag or path trick around it; see
+  [microsoft/vscode-remote-release#11356](https://github.com/microsoft/vscode-remote-release/issues/11356).
 
+- **A base-image split.** Build a separate "base" image
+  containing just the upstream features, tag it, then have `agent/Dockerfile`
+  do `FROM` that tag plus the apt packages and `postCreate.sh` on top, with
+  `features` removed from the main `devcontainer.json`. This would give real
+  cache separation for both, but requires a second build pipeline (its own
+  `devcontainer.json`, a manual build/tag step, remembering to redo it on
+  every feature/package bump) for a problem that's mostly caused by one file.
+  Set aside for now in favor of keeping the setup as one self-contained
+  config; worth revisiting if the rebuild time becomes a bigger problem than
+  the added maintenance.
+
+- **Getting rid of devcontainer altogether** The dev container setup makes it
+  super easy to integrate in VSCode. We want to avoid ntegrating a bare
+  container in VSCode manually.
+  
 ## License
 
 MIT — see [LICENSE](LICENSE).
