@@ -25,6 +25,8 @@ command:
 export CLAUDE_DEVCONTAINER_ENGINE=podman   # or docker
 ```
 
+**Note:** Standalone `podman-compose` is not supported — Podman 4.7+ with built-in `podman compose` is required.
+
 **Known limitation:** desktop notifications (`claude-desktop-notification`) are
 best-effort under Podman. The Docker/AppArmor-specific `security_opt` is handled
 automatically, but PulseAudio/D-Bus host-session integration hasn't been independently
