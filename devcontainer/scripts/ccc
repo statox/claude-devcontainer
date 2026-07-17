@@ -21,6 +21,9 @@ fi
 DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
 DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
+# shellcheck source=lib/engine.sh
+source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
+
 WORKSPACE_FOLDER="$(pwd)"
 
 # Passed into the devcontainer so files created there are owned by the host user.
@@ -32,8 +35,9 @@ DEV_UID="$(id -u)"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
 # Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
-docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
+# shellcheck disable=SC2086  # intentional word-splitting of script-controlled COMPOSE_FILES
+(cd "$DEVCONTAINER_DIR" && $COMPOSE_CMD $COMPOSE_FILES up -d --wait)
 
 # Create/start the workspace-scoped agent container, then exec a shell in it.
-npx @devcontainers/cli up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON"
-exec npx @devcontainers/cli exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" bash
+npx @devcontainers/cli up --docker-path "$ENGINE_BIN" --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON"
+exec npx @devcontainers/cli exec --docker-path "$ENGINE_BIN" --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" bash
