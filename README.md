@@ -10,9 +10,26 @@ For now the setup has only been tested on linux + docker.
 
 System requirements:
 
-- `docker` (TODO podman)
+- `docker`, or `podman` 4.7+ (for its built-in `podman compose` subcommand)
 - `node` + `npx` (TODO use other sources for devcontainer/cli
 - If using VSCode: The devcontainer extension
+
+### Container backend: Docker or Podman
+
+`ccc`/`ccc-code`/`ccc-compose`/`ccc-rebuild` auto-detect which backend to use: `docker`
+if it's installed and its daemon responds, otherwise `podman`. To force one explicitly
+(e.g. if both are installed), set an environment variable before running any `ccc*`
+command:
+
+```bash
+export CLAUDE_DEVCONTAINER_ENGINE=podman   # or docker
+```
+
+**Known limitation:** desktop notifications (`claude-desktop-notification`) are
+best-effort under Podman. The Docker/AppArmor-specific `security_opt` is handled
+automatically, but PulseAudio/D-Bus host-session integration hasn't been independently
+verified under Podman's rootless networking model — if notifications don't fire, this
+is the likely cause.
 
 ## Goals
 
