@@ -1,8 +1,8 @@
 # claude_devcontainer
 
 A per-repo development container for running Claude Code, with a small
-always-on "broker" container that gives it a safe, narrow path to host
-resources.
+always-on `claude-desktop-notification` container that gives it a safe,
+narrow path to host resources.
 
 ## Requirements
 
@@ -19,23 +19,25 @@ System requirements:
 - **Per-repo agent container.** Every repo gets its own container (`agent`),
   scoped to that repo's workspace folder, so Claude only ever sees the path
   it was started in — not the rest of the host filesystem.
-- **A broker for host access.** The `agent` container has no direct access
-  to the host. Anything it needs from the host goes through `broker`, a
-  separate, minimal, global-singleton container (one broker for all
-  workspaces), reached over a Unix socket shared via a Docker volume.
-  - **Today:** the broker forwards desktop notifications (sound +
-    `notify-send`) so Claude can nudge you when it needs input or finishes a
-    task, without the agent container needing PulseAudio/D-Bus access
-    itself. **This requires a Linux host with a running PulseAudio + D-Bus
-    session** — see "Limitations" below.
+- **A narrow path for host access.** The `agent` container has no direct
+  access to the host. Anything it needs from the host goes through
+  `claude-desktop-notification`, a separate, minimal, global-singleton
+  container (one instance for all workspaces), reached over a Unix socket
+  shared via a Docker volume.
+  - **Today:** it forwards desktop notifications (sound + `notify-send`) so
+    Claude can nudge you when it needs input or finishes a task, without the
+    agent container needing PulseAudio/D-Bus access itself. **This requires
+    a Linux host with a running PulseAudio + D-Bus session** — see
+    "Notifications are Linux-only" below for details and how to disable it
+    on other hosts.
 - **MCP servers, each isolated in its own container.** Rather than running
   as local subprocesses of the agent, MCP servers run in their own singleton
   containers (e.g. `mcp-everything`), reached directly over a dedicated
-  Docker network — no broker involvement, since these servers don't hold
-  host-facing credentials the way the notification broker does.
+  Docker network — no involvement from `claude-desktop-notification`, since
+  these servers don't hold host-facing credentials the way it does.
 - **One command to get in.** `ccc` wraps the whole flow — bring up the
-  broker, bring up/reuse the per-repo agent container, drop you into a shell
-  in it — so day-to-day use is just `cd <repo> && ccc`.
+  singleton services, bring up/reuse the per-repo agent container, drop you
+  into a shell in it — so day-to-day use is just `cd <repo> && ccc`.
 - **Devcontainer features for the dev environment, the agent Dockerfile for
   the rest.** Standard tooling (GitHub CLI, `uv`, Node, the `claude` binary
   itself) is installed via devcontainer features in `devcontainer.json`.
@@ -72,18 +74,18 @@ host
 │   ├── shell-init.sh                  <- defines ccc/ccc-code/ccc-compose/ccc-rebuild aliases
 │   ├── devcontainer/
 │   │   ├── devcontainer.json          <- agent container config (per-repo instance)
-│   │   ├── docker-compose.yml         <- singleton services: broker + mcp-everything (global, all workspaces)
+│   │   ├── docker-compose.yml         <- singleton services: claude-desktop-notification + mcp-everything (global, all workspaces)
 │   │   ├── agent/
 │   │   │   ├── Dockerfile             <- agent image: bash, git, vim, ripgrep, gh, glab, ...
 │   │   │   └── postCreate.sh          <- symlinks claude/* into ~/.claude on create
-│   │   ├── broker/
-│   │   │   ├── Dockerfile             <- broker image: socat, dbus, libnotify-bin, pulseaudio-utils
-│   │   │   └── handle-notify.sh       <- runs inside broker; plays sound + notify-send per message
+│   │   ├── claude-desktop-notification/
+│   │   │   ├── Dockerfile             <- image: socat, dbus, libnotify-bin, pulseaudio-utils
+│   │   │   └── handle-notify.sh       <- runs inside the container; plays sound + notify-send per message
 │   │   ├── mcp-everything/
 │   │   │   └── Dockerfile             <- MCP test server image: node, socat, @modelcontextprotocol/server-everything
 │   │   └── scripts/
-│   │       ├── ccc                    <- up broker+mcp, up/exec agent
-│   │       ├── ccc-code                <- up broker+mcp/agent, open VS Code attached
+│   │       ├── ccc                    <- up singleton services+mcp, up/exec agent
+│   │       ├── ccc-code                <- up singleton services+mcp/agent, open VS Code attached
 │   │       ├── ccc-compose             <- thin `docker compose` wrapper for the singleton services project
 │   │       └── ccc-rebuild             <- force a clean rebuild of the agent image/container
 │   └── claude/                        <- default Claude Code config, symlinked into every agent container
@@ -94,7 +96,8 @@ host
 │   ├── claude-home    <- ~/.claude inside agent containers (session state, persists across repos)
 │   ├── glab-config    <- ~/.config/glab-cli inside agent containers
 │   ├── vscode-server  <- ~/.vscode-server inside agent containers (VS Code Server + extensions)
-│   └── broker-sock    <- /run/broker inside both agent and broker (the notify socket lives here)
+│   └── claude-desktop-notification-sock  <- /run/claude-desktop-notification inside both agent and
+│                          the notification container (the notify socket lives here)
 │
 └── docker networks
     └── mcp-net        <- bridge network joining the agent container and mcp-* singleton containers
@@ -102,32 +105,36 @@ host
 
 **Two containers, two lifecycles:**
 
-- `broker` is a **global singleton** — one instance total, shared by every
-  repo's agent container, started via `docker compose` (`docker-compose.yml`,
-  shared with `mcp-everything`) and left running (`restart: unless-stopped`).
-  It's the only container with host-facing access (`network_mode: host`, the
-  host's PulseAudio/D-Bus sockets bind-mounted in, `apparmor:unconfined`
-  because Ubuntu's AppArmor D-Bus mediation blocks the session bus
-  otherwise). Its whole job is to sit on `UNIX-LISTEN:/run/broker/notify.sock`
-  (via `socat`) and run `handle-notify.sh` for each connection.
+- `claude-desktop-notification` is a **global singleton** — one instance
+  total, shared by every repo's agent container, started via `docker compose`
+  (`docker-compose.yml`, shared with `mcp-everything`) and left running
+  (`restart: unless-stopped`). It's the only container with host-facing
+  access (`network_mode: host`, the host's PulseAudio/D-Bus sockets
+  bind-mounted in, `apparmor:unconfined` because Ubuntu's AppArmor D-Bus
+  mediation blocks the session bus otherwise). Its whole job is to sit on
+  `UNIX-LISTEN:/run/claude-desktop-notification/notify.sock` (via `socat`)
+  and run `handle-notify.sh` for each connection.
 - `agent` is **per-repo** — one instance per workspace folder, built from
   `agent/Dockerfile`, created/reused by the `devcontainers` CLI
-  (`devcontainer.json`). It mounts the repo at `/workdir`, gets `broker-sock`
-  so it can reach the broker's socket, and joins the `mcp-net` bridge network
-  so it can reach singleton MCP server containers (e.g. `mcp-everything`) by
-  service name — but never touches the host directly.
+  (`devcontainer.json`). It mounts the repo at `/workdir`, gets
+  `claude-desktop-notification-sock` so it can reach that container's socket,
+  and joins the `mcp-net` bridge network so it can reach singleton MCP
+  server containers (e.g. `mcp-everything`) by service name — but never
+  touches the host directly.
 
-**Notification flow (today's only broker traffic):** a Claude Code hook in
-the agent container runs `bell-notify.sh <type> <message>`, which pipes
-`type|message` into `UNIX-CONNECT:/run/broker/notify.sock`. The broker's
-`socat` forks a handler running `handle-notify.sh`, which plays `bell.wav`
-and fires a `notify-send` desktop notification on the host, detached via
-`setsid` so the D-Bus round-trip survives `socat` tearing down the
-connection handler as soon as the client disconnects.
+**Notification flow (today's only traffic through this path):** a Claude
+Code hook in the agent container runs
+`~/.claude/notifications/bell-notify.sh <type> <message>`, which pipes
+`type|message` into `UNIX-CONNECT:/run/claude-desktop-notification/notify.sock`.
+The container's `socat` forks a handler running `handle-notify.sh`, which
+plays `bell.wav` and fires a `notify-send` desktop notification on the host,
+detached via `setsid` so the D-Bus round-trip survives `socat` tearing down
+the connection handler as soon as the client disconnects. This is Linux-only
+and can be disabled — see "Notifications are Linux-only" below.
 
-**MCP servers:** each MCP server runs in its own container, alongside the
-broker, as a singleton service in `docker-compose.yml` (e.g.
-`mcp-everything`, wrapping `@modelcontextprotocol/server-everything`). The
+**MCP servers:** each MCP server runs in its own container, alongside
+`claude-desktop-notification`, as a singleton service in `docker-compose.yml`
+(e.g. `mcp-everything`, wrapping `@modelcontextprotocol/server-everything`). The
 agent container reaches them directly over the `mcp-net` bridge network by
 service name. Each server's container wraps its stdio-based process behind
 `socat TCP-LISTEN:<port>,fork`, and Claude Code is configured to reach it
@@ -187,11 +194,12 @@ devcontainer setup and shared with any bare-host (non-container) use of
 Claude Code too:
 
 - `CLAUDE.md` — global instructions, active in every project.
-- `settings.json` — permissions, hooks (wired to `bell-notify.sh`),
+- `settings.json` — permissions, hooks (wired to `notifications/bell-notify.sh`),
   statusline, theme, and other Claude Code settings.
-- `bell-notify.sh` / `bell.wav` — the client half of the notification flow
-  described above; invoked by the `Notification`/`Stop` hooks in
-  `settings.json`.
+- `notifications/` — the client half of the notification flow described
+  above (`bell-notify.sh`, `bell.wav`); invoked by the `Notification`/`Stop`
+  hooks in `settings.json`. Linux-only — see "Notifications are Linux-only"
+  below.
 - `statusline-command.sh` — the statusline script referenced by
   `settings.json`.
 - `mcp-servers.json` — the `mcpServers` config (user scope), tracked here
@@ -225,7 +233,8 @@ symlink both ways.
 2. Run `ccc`.
 
 That single command:
-- brings up the global `broker` singleton if it isn't already running
+- brings up the global singleton services (including
+  `claude-desktop-notification`) if they aren't already running
   (`docker compose ... up -d --wait`);
 - creates (or reuses) the `agent` container for the current workspace folder
   via `devcontainers/cli up`;
@@ -234,10 +243,11 @@ That single command:
 From that shell, run `claude` (the actual Claude Code binary — installed via
 the `claude-code` devcontainer feature) as usual. Inside the container you
 have your repo at `/workdir`, this repo's config at `~/.claude-devcontainer`,
-`gh`/`glab` for GitHub/GitLab, and desktop notifications working through the
-broker.
+`gh`/`glab` for GitHub/GitLab, and desktop notifications working through
+`claude-desktop-notification` (Linux hosts only — see "Notifications are
+Linux-only" below).
 
-To just inspect/manage the broker without going through the full flow:
+To just inspect/manage the singleton services without going through the full flow:
 ```
 ccc-compose ps
 ccc-compose logs -f
@@ -255,8 +265,8 @@ above already creates — no changes to the repo, no separate container.
 1. `cd` into the repo you want to work on.
 2. Run `ccc-code`.
 
-That single command brings up the broker and the `agent` container exactly
-like `ccc` does, then opens VS Code already attached to that container with
+That single command brings up the singleton services and the `agent`
+container exactly like `ccc` does, then opens VS Code already attached to that container with
 `/workdir` open. The Claude Code extension (`anthropic.claude-code`)
 installs itself automatically the first time VS Code connects — listed
 under `customizations.vscode.extensions` in `devcontainer.json`. It persists
@@ -298,10 +308,12 @@ alongside the `devcontainer.json` change.
 **Add a tool to the agent image** (when no feature exists for it): edit
 `agent/Dockerfile`, then rebuild.
 
-**Change the broker** (new notification behavior): edit `broker/Dockerfile`
-or `broker/handle-notify.sh`, then recreate just that service:
+**Change desktop notification behavior**: edit
+`claude-desktop-notification/Dockerfile` or
+`claude-desktop-notification/handle-notify.sh`, then recreate just that
+service:
 ```
-ccc-compose up -d --build --force-recreate broker
+ccc-compose up -d --build --force-recreate claude-desktop-notification
 ```
 
 **Change an MCP server** (new server, dependency bump): edit
@@ -337,16 +349,25 @@ needed) or `ccc-rebuild` picks them up — no separate step required.
 
 ### Notifications are Linux-only
 
-The `broker` container assumes a Linux host with a running PulseAudio +
-D-Bus user session (`network_mode: host`, `apparmor:unconfined`,
-`/run/user/$UID` bind-mounted in). It won't work as-is on macOS or a
-headless/WSL host with no desktop session.
+The `claude-desktop-notification` container assumes a Linux host with a
+running PulseAudio + D-Bus user session (`network_mode: host`,
+`apparmor:unconfined`, `/run/user/$UID` bind-mounted in). It won't work
+as-is on macOS or a headless/WSL host with no desktop session — on those
+hosts, `ccc`/`ccc-code`/`ccc-rebuild` will still bring the service up (it's
+part of the same `docker-compose.yml` as the other singleton services), but
+`notify-send`/`paplay` inside it will simply fail to reach a desktop
+session.
 
-**TODO:** rename the `broker` service to something like
-`linux-desktop-notifications` and make bringing it up opt-in via a setting,
-so the rest of the setup (agent container, MCP servers) degrades gracefully
-on hosts without a Linux desktop session, instead of `ccc` unconditionally
-trying to start it.
+**To disable it:** `~/.claude/notifications/bell-notify.sh` (the client half
+of the flow, invoked by the `Notification`/`Stop` hooks in `settings.json`)
+already no-ops silently if it can't reach the notification socket, so
+disabling is just a matter of not running the service:
+- Comment out the `claude-desktop-notification` block (and its
+  `claude-desktop-notification-sock` volume) in `devcontainer/docker-compose.yml`, or
+- if it's already running, stop it directly: `ccc-compose stop claude-desktop-notification`.
+
+Either way, the rest of the setup (agent container, MCP servers) keeps
+working normally — you just won't get desktop notifications.
 
 ### Long build time
 

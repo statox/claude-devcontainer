@@ -33,7 +33,7 @@
         "source=claude-home,target=/home/dev/.claude,type=volume",
         "source=vscode-server,target=/home/dev/.vscode-server,type=volume",
         "source=glab-config,target=/home/dev/.config/glab-cli,type=volume",
-        "source=broker-sock,target=/run/broker,type=volume",
+        "source=claude-desktop-notification-sock,target=/run/claude-desktop-notification,type=volume",
         "source=${localEnv:CLAUDE_DEVCONTAINER_HOME},target=/home/dev/.claude-devcontainer,type=bind",
         "source=${localEnv:HOME}/.claude.json,target=/home/dev/.claude.json,type=bind",
         "source=${localEnv:HOME}/.netrc,target=/home/dev/.netrc,type=bind"

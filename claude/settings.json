@@ -72,7 +72,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash ~/.claude/bell-notify.sh waiting \"⏳ Waiting for input\""
+                        "command": "bash ~/.claude/notifications/bell-notify.sh waiting \"⏳ Waiting for input\""
                     }
                 ]
             }
@@ -82,7 +82,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash ~/.claude/bell-notify.sh done \"✅ Done\""
+                        "command": "bash ~/.claude/notifications/bell-notify.sh done \"✅ Done\""
                     }
                 ]
             }

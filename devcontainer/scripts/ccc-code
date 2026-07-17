@@ -2,8 +2,8 @@
 # Open VS Code attached to the per-workspace Claude agent devcontainer.
 #
 # Usage: cd into the project you want to work on, then run this script with
-# no arguments. It brings up the global broker and the per-repo agent
-# container, then opens VS Code already attached to that container with
+# no arguments. It brings up the global singleton services and the per-repo
+# agent container, then opens VS Code already attached to that container with
 # /workdir open, so the VS Code Claude Code extension runs confined inside it.
 set -euo pipefail
 
@@ -25,7 +25,7 @@ DEV_UID="$(id -u)"
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
-# Start the global singleton services (broker, mcp-everything, ...) — idempotent if already running.
+# Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
 docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
 
 # Create/start the workspace-scoped agent container (idempotent: reuses the

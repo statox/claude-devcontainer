@@ -1,17 +1,17 @@
 services:
-  broker:
+  claude-desktop-notification:
     build:
-      context: ./broker
+      context: ./claude-desktop-notification
     network_mode: host
     user: "${DEV_UID}"
     # Ubuntu's AppArmor userspace mediation for D-Bus blocks the session bus
-    # from Docker's default confined profile regardless of UID; the broker's
-    # sole job is talking to that bus, so it runs unconfined.
+    # from Docker's default confined profile regardless of UID; this
+    # service's sole job is talking to that bus, so it runs unconfined.
     security_opt:
       - apparmor:unconfined
     restart: unless-stopped
     volumes:
-      - broker-sock:/run/broker
+      - claude-desktop-notification-sock:/run/claude-desktop-notification
       - /run/user/${DEV_UID}:/run/user/${DEV_UID}
       - ${CLAUDE_DEVCONTAINER_HOME}/claude:/claude-assets:ro
     environment:
@@ -36,5 +36,5 @@ volumes:
   # Fixed name so this matches the plain (non-Compose) volume reference the
   # agent's devcontainer.json mounts by name — otherwise Compose would
   # namespace it under the project name, a different volume the agent never sees.
-  broker-sock:
-    name: broker-sock
+  claude-desktop-notification-sock:
+    name: claude-desktop-notification-sock

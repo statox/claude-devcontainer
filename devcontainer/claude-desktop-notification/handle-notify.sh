@@ -9,7 +9,7 @@ case "$type" in
     *)       urgency=low; icon=dialog-information ;;
 esac
 
-echo "[broker] notify: type=${type} message=${message}" >&2
+echo "[claude-desktop-notification] notify: type=${type} message=${message}" >&2
 
 # socat tears down this process (and anything still attached to its session)
 # as soon as the client closes the connection, which happens right after it
@@ -18,6 +18,6 @@ echo "[broker] notify: type=${type} message=${message}" >&2
 # work into its own session so it survives past this process's teardown.
 # shellcheck disable=SC2016
 setsid sh -c '
-    paplay /claude-assets/bell.wav >/dev/null 2>&1 || true
+    paplay /claude-assets/notifications/bell.wav >/dev/null 2>&1 || true
     notify-send "$1" -a Claude -u "$2" -i "$3" -t 1500 || true
 ' -- "$message" "$urgency" "$icon" </dev/null >/dev/null 2>&1 &

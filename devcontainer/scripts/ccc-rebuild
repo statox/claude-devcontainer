@@ -27,7 +27,7 @@ DEV_UID="$(id -u)"
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
-# Start the global singleton services (broker, mcp-everything, ...) — idempotent if already running.
+# Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
 echo "Start up singleton services"
 docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
 

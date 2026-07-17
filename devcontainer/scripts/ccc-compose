@@ -1,6 +1,6 @@
 #!/bin/bash
 # Thin wrapper around `docker compose` for the global singleton services
-# project (broker, mcp-everything, ...), for diagnostics (e.g.
+# project (claude-desktop-notification, mcp-everything, ...), for diagnostics (e.g.
 # `ccc-compose logs -f`, `ccc-compose ps`, `ccc-compose down`). These
 # services are normally started automatically by ccc; use this script
 # directly when you need to inspect or manage them outside of that flow.
