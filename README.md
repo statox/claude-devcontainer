@@ -29,7 +29,7 @@ Developper experience
 System requirements:
 
 - `docker` with Compose v2, or `podman` 4.7+ **and** `podman-compose`
-- `node` + `npx` Used to provide the `devcontainer` cli (TODO Change that in the future)
+- `devcontainer` cli. See [devcontainers/cli](https://github.com/devcontainers/cli)
 - If using VS Code:
     - The devcontainer extension installed (VS Code should prompt for installing it automatically)
     - The standard `xxd` utility
@@ -234,10 +234,6 @@ If this is still a problem, contact the author of this repo.
 
 
 ## TODO
-
-### Don't use npx for `devcontainer` cli
-
-We want to have the user install the cli themselve and have the script simply use `devcontainer` from the path to remove the hard dependency to the node ecosystem.
 
 ### Long build time
 

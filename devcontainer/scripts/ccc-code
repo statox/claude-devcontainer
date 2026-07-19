@@ -37,7 +37,7 @@ $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 # existing container for this workspace folder if one is already running,
 # so running this script twice from the same directory attaches two VS Code
 # windows to the same container rather than creating a second one).
-npx @devcontainers/cli up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN"
+devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN"
 
 # Find the container the CLI just created/reused, via the same
 # `devcontainer.local_folder` label the CLI itself uses for this lookup.
