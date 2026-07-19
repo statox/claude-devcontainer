@@ -3,6 +3,10 @@
     "command": "nc",
     "args": ["mcp-everything", "3001"]
   },
+  "context7": {
+    "command": "nc",
+    "args": ["mcp-context7", "3002"]
+  },
   "typescript": {
     "command": "mcp-language-server",
     "args": ["--workspace", "/workdir", "--lsp", "typescript-language-server", "--", "--stdio"]

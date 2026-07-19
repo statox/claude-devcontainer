@@ -46,9 +46,10 @@ with a clear error pointing back here.
     on other hosts.
 - **MCP servers, each isolated in its own container.** Rather than running
   as local subprocesses of the agent, MCP servers run in their own singleton
-  containers (e.g. `mcp-everything`), reached directly over a dedicated
-  Docker network — no involvement from `claude-desktop-notification`, since
-  these servers don't hold host-facing credentials the way it does.
+  containers (e.g. `mcp-everything`, `mcp-context7`), reached directly over a
+  dedicated Docker network — no involvement from
+  `claude-desktop-notification`, since these servers don't hold host-facing
+  credentials the way it does.
 - **One command to get in.** `ccc` wraps the whole flow — bring up the
   singleton services, bring up/reuse the per-repo agent container, drop you
   into a shell in it — so day-to-day use is just `cd <repo> && ccc`.
@@ -99,7 +100,7 @@ host
 │   ├── shell-init.sh                  <- defines ccc/ccc-code/ccc-compose/ccc-rebuild aliases
 │   ├── devcontainer/
 │   │   ├── devcontainer.json          <- agent container config (per-repo instance)
-│   │   ├── docker-compose.yml         <- singleton services: claude-desktop-notification + mcp-everything (global, all workspaces)
+│   │   ├── docker-compose.yml         <- singleton services: claude-desktop-notification + mcp-everything + mcp-context7 (global, all workspaces)
 │   │   ├── agent/
 │   │   │   ├── Dockerfile             <- agent image: bash, git, vim, ripgrep, gh, glab, ...
 │   │   │   └── postCreate.sh          <- symlinks claude/* into ~/.claude on create
@@ -108,6 +109,8 @@ host
 │   │   │   └── handle-notify.sh       <- runs inside the container; plays sound + notify-send per message
 │   │   ├── mcp-everything/
 │   │   │   └── Dockerfile             <- MCP test server image: node, socat, @modelcontextprotocol/server-everything
+│   │   ├── mcp-context7/
+│   │   │   └── Dockerfile             <- Context7 MCP server image: node, socat, @upstash/context7-mcp
 │   │   └── scripts/
 │   │       ├── ccc                    <- up singleton services+mcp, up/exec agent
 │   │       ├── ccc-code                <- up singleton services+mcp/agent, open VS Code attached
@@ -159,11 +162,13 @@ and can be disabled — see "Notifications are Linux-only" below.
 
 **MCP servers:** each MCP server runs in its own container, alongside
 `claude-desktop-notification`, as a singleton service in `docker-compose.yml`
-(e.g. `mcp-everything`, wrapping `@modelcontextprotocol/server-everything`). The
-agent container reaches them directly over the `mcp-net` bridge network by
-service name. Each server's container wraps its stdio-based process behind
-`socat TCP-LISTEN:<port>,fork`, and Claude Code is configured to reach it
-with `nc <service-name> <port>` as the MCP server's `command`.
+(e.g. `mcp-everything`, wrapping `@modelcontextprotocol/server-everything`;
+`mcp-context7`, wrapping Upstash's `@upstash/context7-mcp` for up-to-date
+library documentation lookups). The agent container reaches them directly
+over the `mcp-net` bridge network by service name. Each server's container
+wraps its stdio-based process behind `socat TCP-LISTEN:<port>,fork`, and
+Claude Code is configured to reach it with `nc <service-name> <port>` as the
+MCP server's `command`.
 
 To add a new MCP server: add a `devcontainer/mcp-<name>/Dockerfile`
 following the `mcp-everything` pattern, add a matching service to
