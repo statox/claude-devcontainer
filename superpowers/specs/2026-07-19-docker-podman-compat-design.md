@@ -90,3 +90,44 @@ No CI in this repo; verification is manual, matching the existing project conven
 - Confirm `CLAUDE_DEVCONTAINER_ENGINE=docker` and `=podman` both force the expected
   engine when both are installed.
 - Confirm `ccc-compose ps`/`ccc-code` work under both engines.
+
+## Amendment (post-implementation)
+
+Manual verification on a real Podman VM surfaced a wrong assumption above:
+`podman compose` is **not** a self-contained implementation — it's a dispatcher that
+shells out to an external compose provider (`docker-compose` CLI plugin,
+`docker-compose` binary, or `podman-compose`), none of which Podman installs itself.
+Without one present, `podman compose ...` fails with a 7-line "looking up compose
+provider failed" error.
+
+Fix: `lib/engine.sh` now runs `podman compose version` as a preflight check right
+after selecting `ENGINE_BIN=podman`, and fails with an actionable error ("install
+podman-compose") instead of letting the raw podman error surface later inside
+`@devcontainers/cli`. `podman-compose` is now a documented required dependency
+alongside Podman itself (README "Requirements").
+
+A second Podman-only failure surfaced next: `devcontainer.json` bind-mounts
+`${localEnv:HOME}/.netrc` unconditionally. Docker silently creates an empty file when a
+bind-mount source doesn't exist on the host; Podman requires the source to pre-exist and
+fails with `statfs: no such file or directory` otherwise. Fix: `ccc`, `ccc-code`, and
+`ccc-rebuild` now bootstrap `~/.netrc` with `touch` if missing, the same pattern already
+used for `~/.claude.json` just above it in each script.
+
+A third issue: `podman-compose` 1.0.6 (the actual provider `podman compose` dispatches
+to) doesn't support Docker Compose v2's `up --wait` flag and errors on it
+("unrecognized arguments: --wait"). Neither compose file defines healthchecks, so
+`--wait` doesn't buy meaningful readiness-waiting under Podman anyway. Fix:
+`lib/engine.sh` now exports `COMPOSE_UP_FLAGS` (`-d --wait` for Docker, `-d` for
+Podman), and `ccc`/`ccc-code`/`ccc-rebuild` use `up $COMPOSE_UP_FLAGS` instead of a
+hardcoded `up -d --wait`.
+
+A fourth issue: the agent container build failed on `FROM golang:1.24-alpine` with
+`short-name "golang:1.24-alpine" did not resolve to an alias and no unqualified-search
+registries are defined`. Docker always defaults short image names to `docker.io`;
+Podman's short-name resolution depends on host config (`registries.conf` /
+`shortnames.conf`), which varies by machine — `node:22-alpine` happened to resolve via
+an existing alias, `golang:1.24-alpine` didn't. Fix: fully qualify every `FROM` in this
+repo's Dockerfiles to `docker.io/library/...` (`agent/Dockerfile` — both the
+`golang:1.24-alpine` builder stage and the `ubuntu:24.04` base,
+`claude-desktop-notification/Dockerfile`, `mcp-everything/Dockerfile`). This removes
+the dependency on host registry config entirely and is a no-op under Docker.

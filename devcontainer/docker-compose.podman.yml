@@ -1,0 +1,14 @@
+services:
+  mcp-everything:
+    build:
+      context: ./mcp-everything
+    restart: unless-stopped
+    networks:
+      - mcp-net
+
+networks:
+  # Fixed name so the agent's `--network=mcp-net` runArg (devcontainer.json)
+  # attaches to this network by name, rather than Compose's default
+  # project-prefixed naming.
+  mcp-net:
+    name: mcp-net

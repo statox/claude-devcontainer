@@ -13,8 +13,14 @@ if [ -z "${CLAUDE_DEVCONTAINER_HOME:-}" ]; then
     exit 1
 fi
 
+DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
+
+# shellcheck source=SCRIPTDIR/lib/engine.sh
+source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
+
 # Passed through so the compose file's UID interpolation resolves correctly.
 export DEV_UID
 DEV_UID="$(id -u)"
 
-exec docker compose -f "$CLAUDE_DEVCONTAINER_HOME/devcontainer/docker-compose.yml" "$@"
+# shellcheck disable=SC2086
+exec $COMPOSE_CMD -f "$COMPOSE_FILE" "$@"

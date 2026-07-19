@@ -10,9 +10,23 @@ For now the setup has only been tested on linux + docker.
 
 System requirements:
 
-- `docker` (TODO podman)
+- `docker`, or `podman` 4.7+ **and** `podman-compose` (see note below)
 - `node` + `npx` (TODO use other sources for devcontainer/cli
 - If using VSCode: The devcontainer extension
+
+By default the engine is auto-detected: Docker is used if installed and its
+daemon is reachable, otherwise Podman is used if installed. Set
+`CLAUDE_DEVCONTAINER_ENGINE=docker` or `CLAUDE_DEVCONTAINER_ENGINE=podman` to
+force a specific engine (e.g. on a machine with both installed) — if set to
+an engine that isn't installed, the `ccc*` commands fail with an error
+rather than silently falling back.
+
+**Podman's `podman compose` is a dispatcher, not a self-contained
+implementation** — it shells out to an external compose provider
+(`docker-compose` or `podman-compose`) that isn't installed by Podman
+itself. Install `podman-compose` separately (e.g. `pip install
+podman-compose`, or your distro's package) or `ccc`/`ccc-compose` will fail
+with a clear error pointing back here.
 
 ## Goals
 
@@ -63,8 +77,19 @@ System requirements:
 3. Open a new shell (or `source` your rc file). This defines the `ccc`,
    `ccc-code`, `ccc-compose`, and `ccc-rebuild` commands.
 
-Requires: Docker with Compose v2, `npx` (Node.js), and — for notifications —
-a Linux host with PulseAudio and D-Bus running in the user session.
+Requires: Docker with Compose v2 (or Podman 4.7+ with `podman-compose`
+installed — see "Requirements" above), `npx` (Node.js), and — for
+notifications, Docker only, see "Known limitations" below — a Linux host
+with PulseAudio and D-Bus running in the user session.
+
+## Known limitations
+
+- **Desktop notifications are Docker-only.** Under Podman, the
+  `claude-desktop-notification` singleton service is not started at all —
+  `devcontainer/docker-compose.podman.yml` omits it. Its AppArmor/PulseAudio/
+  D-Bus/host-networking setup is Docker-specific and hasn't been
+  reimplemented for Podman's confinement and rootless-networking model.
+  `mcp-everything` and the agent container work the same under both engines.
 
 ## Architecture
 

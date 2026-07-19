@@ -23,17 +23,22 @@ DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
 
 WORKSPACE_FOLDER="$(pwd)"
 
+# shellcheck source=SCRIPTDIR/lib/engine.sh
+source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
+
 # Passed into the devcontainer so files created there are owned by the host user.
 export DEV_UID
 DEV_UID="$(id -u)"
 
 # Bootstrap files/dirs the container expects to already exist on the host.
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
+[ -e "$HOME/.netrc" ] || touch "$HOME/.netrc"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
-# Start the global singleton services (claude-desktop-notification, mcp-everything, ...) — idempotent if already running.
-docker compose -f "$DEVCONTAINER_DIR/docker-compose.yml" up -d --wait
+# Start the global singleton services (mcp-everything, and claude-desktop-notification under Docker) — idempotent if already running.
+# shellcheck disable=SC2086
+$COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 
 # Create/start the workspace-scoped agent container, then exec a shell in it.
-npx @devcontainers/cli up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON"
-exec npx @devcontainers/cli exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" bash
+npx @devcontainers/cli up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN"
+exec npx @devcontainers/cli exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" bash
