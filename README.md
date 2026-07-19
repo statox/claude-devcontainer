@@ -1,3 +1,5 @@
+__This README.md was written by a human for oher humans. When modifying it, try to keep a tidy writing and avoid novel-side LLM generated paragraphs.__
+
 # Claude DevContainer
 
 This repo is a collection of scripts to run Claude Code and its MCP servers in isolated containers.
@@ -23,6 +25,13 @@ Developper experience
 - Use versioned Claude customizations (`CLAUDE.md`, skill, MCP configurations)
 - Automatically install marketplaces and plugins on launch
 - Allow using Claude Code on the CLI or in VS Code extension
+
+Exhaustive Claude Code configuration
+- [`.claude/` configuration directory](https://code.claude.com/docs/en/settings)
+- [Plugins](https://code.claude.com/docs/en/discover-plugins)
+- Custom [hooks](https://code.claude.com/docs/en/hooks-guide)
+- Custom [skills](https://code.claude.com/docs/en/skills)
+- Secure [MCP](https://code.claude.com/docs/en/mcp-quickstart) integration
 
 ## Requirements
 
@@ -256,7 +265,3 @@ Reviewed options:
 ### Reword configuration inclusion
 
 For now the Claude Code configurations are included directly in this repo which isn't ideal for a collaborative setup where we want teammates to use this repo as a base -rarely modifying it- and allow them to have their own configurations stored in a separate dotfiles repo.
-
-## Architecture
-
-For a LLM-generated overview of the architecture, features and state of this repo see [`REPO_OVERVIEW.md`](./REPO_OVERVIEW.md)
