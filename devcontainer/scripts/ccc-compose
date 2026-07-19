@@ -8,19 +8,7 @@
 # Usage: ccc-compose <any docker compose subcommand/args>
 set -euo pipefail
 
-if [ -z "${CLAUDE_DEVCONTAINER_HOME:-}" ]; then
-    echo "ccc-compose: CLAUDE_DEVCONTAINER_HOME is not set. See README.md for setup." >&2
-    exit 1
-fi
-
-DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
-
-# shellcheck source=SCRIPTDIR/lib/engine.sh
-source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
-
-# Passed through so the compose file's UID interpolation resolves correctly.
-export DEV_UID
-DEV_UID="$(id -u)"
+source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 
 # shellcheck disable=SC2086
 exec $COMPOSE_CMD -f "$COMPOSE_FILE" "$@"

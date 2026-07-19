@@ -7,22 +7,7 @@
 # /workdir open, so the VS Code Claude Code extension runs confined inside it.
 set -euo pipefail
 
-if [ -z "${CLAUDE_DEVCONTAINER_HOME:-}" ]; then
-    echo "ccc-code: CLAUDE_DEVCONTAINER_HOME is not set. See README.md for setup." >&2
-    exit 1
-fi
-
-DEVCONTAINER_DIR="$CLAUDE_DEVCONTAINER_HOME/devcontainer"
-DEVCONTAINER_JSON="$DEVCONTAINER_DIR/devcontainer.json"
-
-WORKSPACE_FOLDER="$(pwd)"
-
-# shellcheck source=SCRIPTDIR/lib/engine.sh
-source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
-
-# Passed into the devcontainer so files created there are owned by the host user.
-export DEV_UID
-DEV_UID="$(id -u)"
+source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 
 # Bootstrap files/dirs the container expects to already exist on the host.
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
