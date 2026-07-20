@@ -1,4 +1,4 @@
-__This README.md was written by a human for oher humans. When modifying it, try to keep a tidy writing and avoid novel-side LLM generated paragraphs.__
+_This README.md was written by a human for other humans. When modifying it, try to keep a tidy writing and avoid novel-sized LLM generated paragraphs._
 
 # Claude DevContainer
 
