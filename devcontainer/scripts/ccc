@@ -1,10 +1,11 @@
 #!/bin/bash
-# Launch (or attach to) a per-workspace Claude agent devcontainer.
+# ccc - Claude Code Containerized
+# Launches (or attaches to) a per-workspace Claude agent devcontainer.
 #
-# Usage: cd into the project you want to work on, then run this script
-# with no arguments. It brings up the global singleton services (see
-# ccc-compose), starts/reuses the devcontainer for the current working
-# directory, and drops you into a shell inside it.
+#     ccc [-p prompt]
+#
+# -p  run claude as a single-shot prompt inside the devcontainer instead
+#     of dropping into a shell
 #
 # The singleton services (e.g. claude-desktop-notification) are a separate,
 # global-singleton compose project (one instance for all workspaces) that
@@ -12,6 +13,16 @@
 # must be running before the agent container starts, which is why they're
 # brought up first below.
 set -euo pipefail
+
+# Parse arguments
+PROMPT=""
+while getopts ":p:" opt; do
+    case "$opt" in
+        p) PROMPT="$OPTARG" ;;
+        \?) echo "Usage: $0 [-p prompt]" >&2; exit 1 ;;
+        :) echo "Option -$OPTARG requires an argument" >&2; exit 1 ;;
+    esac
+done
 
 source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 
@@ -24,6 +35,11 @@ mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 # shellcheck disable=SC2086
 $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 
-# Create/start the workspace-scoped agent container, then exec a shell in it.
+# Create/start the workspace-scoped agent container, then exec a shell in it
+# (or, with -p, run claude as a single-shot prompt instead of a shell).
 devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN"
-exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" bash
+if [ -n "$PROMPT" ]; then
+    exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" claude -p "$PROMPT"
+else
+    exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" bash
+fi
