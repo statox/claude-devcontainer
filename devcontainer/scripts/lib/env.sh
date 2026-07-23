@@ -15,8 +15,9 @@ WORKSPACE_FOLDER="$(pwd)"
 source "$DEVCONTAINER_DIR/scripts/lib/engine.sh"
 
 # Passed into the devcontainer so files created there are owned by the host user.
-export DEV_UID
+export DEV_UID DEV_GID
 DEV_UID="$(id -u)"
+DEV_GID="$(id -g)"
 
 # Context7 credentials
 # The env file is outside the repo to avoid mounting it in claude container
