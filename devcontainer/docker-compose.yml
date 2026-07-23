@@ -31,6 +31,8 @@ services:
     restart: unless-stopped
     networks:
       - mcp-net
+    env_file:
+      - ${CONTEXT7_ENV_FILE} # Credentials - see scripts/lib/env.sh)
 
 networks:
   # Fixed name so the agent's `--network=mcp-net` runArg (devcontainer.json)

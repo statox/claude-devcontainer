@@ -1,4 +1,4 @@
-_This README.md was written by a human for other humans. When modifying it, try to keep a tidy writing and avoid novel-sized LLM generated paragraphs._
+_This README.md is written by a human for other humans._
 
 # Claude DevContainer
 
@@ -202,6 +202,70 @@ To allow the communication between the agent container and the MCP containers we
     "args": ["mcp-context7", "3002"]
   },
 ```
+
+#### Providing secrets to an isolated MCP
+
+Some MCP servers need credentials (e.g. Context7 API Key). We want to prevent
+the agent from ever accessing this data.
+
+We use a directory to store the credentials on a safe path in the
+user's filesystem. The default path is `$HOME/.config/claude-devcontainer`
+but that can be overriden with the env variable `$MCP_CREDS_ENV_DIR`.
+This directory must never be mounted in the devcontainer (i.e. don't run
+`ccc` inside `$HOME/.config/claude-devcontainer`);
+
+The files in this directory are meant to be simple `KEY=value` and are then
+used in [devcontainer/docker-compose.yml](devcontainer/docker-compose.yml)
+to provide the credentials to the right MCP with `env_file`.
+
+Setup example for Context7:
+```sh
+# Create the config directory if you haven't done it yet
+mkdir -p ~/.config/claude-devcontainer
+
+# Create the new env file with the credentials
+cat > ~/.config/claude-devcontainer/context7.env <<'EOF'
+CONTEXT7_API_KEY=your-key-here
+EOF
+chmod 600 ~/.config/claude-devcontainer/context7.env
+```
+
+In [devcontainer/scripts/lib/env.sh](devcontainer/scripts/lib/env.sh) create the
+env variable which will be passed to docker compose.
+
+```bash
+# Should be there already
+MCP_CREDS_ENV_DIR="${MCP_CREDS_ENV_DIR:-$HOME/.config/claude-devcontainer}"
+
+# The variable contains the path to the env file and is used
+# in docker-compose.yml in the next step
+export CONTEXT7_ENV_FILE="$MCP_CREDS_ENV_DIR/context7.env"
+[ -f "$CONTEXT7_ENV_FILE" ] || CONTEXT7_ENV_FILE=/dev/null
+```
+
+In [devcontainer/docker.compose.yml](devcontainer/docker.compose.yml) AND in [devcontainer/docker-compose.podman.yml](devcontainer/docker-compose.podman.yml) add the env file to the mcp block:
+
+```yaml
+mcp-context7:
+build:
+  context: ./mcp-context7
+# [...]
+env_file:
+  - ${CONTEXT7_ENV_FILE} # Credentials - see scripts/lib/env.sh)
+```
+
+You can recreate only the mcp container to check your changes
+```bash
+ccc-compose up -d --build --force-recreate mcp-context7
+```
+
+And check the variable is populated in the container
+
+```bash
+ccc-compose run mcp-context7 env | grep CONTEXT7_API_KEY
+```
+
+The MCP should now be authenticated. (Maybe you need to restart Claude? To be tested)
 
 ## System tools
 
