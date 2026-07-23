@@ -2,7 +2,11 @@
     "name": "claude-agent",
     "build": {
         "dockerfile": "agent/Dockerfile",
-        "context": "agent"
+        "context": "agent",
+        "args": {
+            "USER_UID": "${localEnv:DEV_UID}",
+            "USER_GID": "${localEnv:DEV_GID}"
+        }
     },
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {},
