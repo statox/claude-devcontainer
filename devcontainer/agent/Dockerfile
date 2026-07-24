@@ -62,5 +62,5 @@ WORKDIR /workdir
 # ownership instead of being root-owned and unwritable.
 RUN mkdir -p /home/dev/.config/glab-cli /home/dev/.claude /home/dev/.vscode-server
 
-COPY --chown=dev:dev postCreate.sh /home/dev/postCreate.sh
+COPY --chown=${USER_UID}:${USER_GID} postCreate.sh /home/dev/postCreate.sh
 RUN chmod 755 /home/dev/postCreate.sh

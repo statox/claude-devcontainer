@@ -28,6 +28,9 @@
     "remoteUser": "dev",
     "updateRemoteUserUID": true,
     "postCreateCommand": "/home/dev/postCreate.sh",
+    "containerEnv": {
+        "TMPDIR": "/home/dev/.local/tmp"
+    },
     "runArgs": [
         "--network=mcp-net"
     ],
