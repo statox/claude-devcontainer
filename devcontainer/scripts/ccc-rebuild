@@ -26,7 +26,8 @@ devcontainer up \
     --workspace-folder "$WORKSPACE_FOLDER" \
     --config "$DEVCONTAINER_JSON" \
     --docker-path "$ENGINE_BIN" \
-    --remove-existing-container
+    --remove-existing-container \
+    "${DEVCONTAINER_OVERRIDE_ARGS[@]}"
 
 echo "Start devcontainer"
 exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" bash

@@ -6,6 +6,11 @@ services:
         USER_UID: "${DEV_UID}"
         USER_GID: "${DEV_GID}"
     restart: unless-stopped
+    # Rootless Podman remaps container UIDs through /etc/subuid/subgid by
+    # default; keep-id maps them 1:1 onto the host so the build-time
+    # useradd's UID/GID (above) actually matches the host user, same
+    # reasoning as devcontainer.podman.json for the agent container.
+    userns_mode: keep-id
     volumes:
       - mcp-context7-sock:/run/mcp-context7
     env_file:

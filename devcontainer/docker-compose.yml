@@ -2,8 +2,10 @@ services:
   claude-desktop-notification:
     build:
       context: ./claude-desktop-notification
+      args:
+        USER_GID: "${DEV_GID}"
     network_mode: host
-    user: "${DEV_UID}"
+    user: "${DEV_UID}:${DEV_GID}"
     # Ubuntu's AppArmor userspace mediation for D-Bus blocks the session bus
     # from Docker's default confined profile regardless of UID; this
     # service's sole job is talking to that bus, so it runs unconfined.

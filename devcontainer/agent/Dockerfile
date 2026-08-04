@@ -18,10 +18,8 @@ RUN curl https://mise.run | sh
 COPY mise.toml /mise/config.toml
 RUN mise bootstrap --yes
 
-# Create dev user with UID/GID matching the host user, passed in as build
-# args (see scripts/lib/env.sh + devcontainer.json's build.args). This
-# matters on macOS, where the default host user UID (501) differs from the
-# Dockerfile's old hardcoded UID (1000).
+# UID/GID mapping - devcontainer/scripts/lib/env.sh exports the host's
+# DEV_UID/DEV_GID that we pass as args at build time
 ARG USER_UID=1000
 ARG USER_GID=1000
 RUN (getent group "$USER_GID" >/dev/null || groupadd -g "$USER_GID" dev) \

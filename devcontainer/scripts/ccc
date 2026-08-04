@@ -36,7 +36,7 @@ $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 
 # Create/start the workspace-scoped agent container, then exec a shell in it
 # (or, with -p, run claude as a single-shot prompt instead of a shell).
-devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN"
+devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" "${DEVCONTAINER_OVERRIDE_ARGS[@]}"
 if [ -n "$PROMPT" ]; then
     exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" claude -p "$PROMPT"
 else

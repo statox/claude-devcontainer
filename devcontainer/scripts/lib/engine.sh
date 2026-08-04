@@ -41,9 +41,18 @@ if [ "$ENGINE_BIN" = "podman" ]; then
     # singleton services define no healthchecks, so it doesn't buy anything
     # under Podman anyway.
     COMPOSE_UP_FLAGS="-d"
+    # Rootless Podman remaps container UIDs through /etc/subuid/subgid
+    # which would make host bind mounts  come out owned by the wrong UID
+    # from the host's perspective.
+    # --userns=keep-id maps the container's UID 1:1 onto the host's,
+    # Docker rejects this flag. Applied via --override-config for Podman
+    # shellcheck disable=SC2034 # consumed by ccc/ccc-rebuild after sourcing this file; arrays can't be exported
+    DEVCONTAINER_OVERRIDE_ARGS=(--override-config "$DEVCONTAINER_DIR/devcontainer.podman.json")
 else
     COMPOSE_FILE="$DEVCONTAINER_DIR/docker-compose.yml"
     COMPOSE_UP_FLAGS="-d --wait"
+    # shellcheck disable=SC2034 # consumed by ccc/ccc-rebuild after sourcing this file; arrays can't be exported
+    DEVCONTAINER_OVERRIDE_ARGS=()
 fi
 
 export ENGINE_BIN COMPOSE_CMD COMPOSE_FILE COMPOSE_UP_FLAGS
