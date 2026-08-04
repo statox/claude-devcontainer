@@ -1,17 +1,12 @@
 #!/bin/bash
 # ccc - Claude Code Containerized
-# Launches (or attaches to) a per-workspace Claude agent devcontainer.
+# Launches (or attaches to) a per-workspace Claude agent container.
 #
 #     ccc [-p prompt]
 #
-# -p  run claude as a single-shot prompt inside the devcontainer instead
+# -p  run claude as a single-shot prompt inside the container instead
 #     of dropping into a shell
-#
-# The singleton services (e.g. claude-desktop-notification) are a separate,
-# global-singleton compose project (one instance for all workspaces) that
-# the agent container talks to for things like desktop notifications; they
-# must be running before the agent container starts, which is why they're
-# brought up first below.
+
 set -euo pipefail
 
 # Parse arguments
@@ -30,15 +25,20 @@ source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
 [ -e "$HOME/.netrc" ] || touch "$HOME/.netrc"
 
-# Start the global singleton services (mcp containers, and claude-desktop-notification under Docker) — idempotent if already running.
+# Start the global singleton services - idempotent if already running.
 # shellcheck disable=SC2086
 $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 
-# Create/start the workspace-scoped agent container, then exec a shell in it
-# (or, with -p, run claude as a single-shot prompt instead of a shell).
-devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" "${DEVCONTAINER_OVERRIDE_ARGS[@]}"
+# Create/start the workspace-scoped agent container - idempotent if already running.
+# shellcheck disable=SC2086
+$COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" up -d $COMPOSE_UP_FLAGS
+
+# Bring the container's config/tooling up to date
+$COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec agent /home/dev/provision.sh
+
+# Exec a shell in the agent container or run claude as a single-shot prompt with -p
 if [ -n "$PROMPT" ]; then
-    exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" claude -p "$PROMPT"
+    exec $COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec agent claude -p "$PROMPT"
 else
-    exec devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" --config "$DEVCONTAINER_JSON" --docker-path "$ENGINE_BIN" bash
+    exec $COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec agent bash
 fi

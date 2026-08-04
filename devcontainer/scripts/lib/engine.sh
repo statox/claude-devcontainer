@@ -4,12 +4,12 @@
 #
 # Callers must set DEVCONTAINER_DIR before sourcing this file.
 #
-# CLAUDE_DEVCONTAINER_ENGINE, if set, forces the choice ("docker" or
-# "podman") and fails loudly if that binary isn't installed — no silent
-# fallback. Otherwise: prefer docker if its daemon is reachable, else fall
-# back to podman if installed. Detection re-runs on every invocation
-# (cheap) rather than being cached, so installing/removing an engine
-# mid-session is picked up immediately.
+# if CLAUDE_DEVCONTAINER_ENGINE is set
+#   force docker or podman
+#   fails if the specified engine is not available
+# else use Docker if its installed and its deamon is reachable
+# else use Podman if installed
+# else fail
 
 _engine_die() {
     echo "engine.sh: $1" >&2
@@ -32,27 +32,18 @@ COMPOSE_CMD="$ENGINE_BIN compose"
 
 if [ "$ENGINE_BIN" = "podman" ]; then
     COMPOSE_FILE="$DEVCONTAINER_DIR/docker-compose.podman.yml"
-    # `podman compose` is a dispatcher, not a self-contained implementation —
-    # it shells out to an external provider (docker-compose or
-    # podman-compose) that must be installed separately.
+    AGENT_COMPOSE_FILE="$DEVCONTAINER_DIR/docker-compose.agent.podman.yml"
+    # `podman compose` needs docker-compose or podman-compose installed
     $COMPOSE_CMD version >/dev/null 2>&1 \
         || _engine_die "podman compose has no working provider. Install podman-compose (e.g. 'pip install podman-compose' or your distro's package) and retry. See README.md."
-    # podman-compose doesn't support Docker Compose v2's `--wait` flag; the
-    # singleton services define no healthchecks, so it doesn't buy anything
-    # under Podman anyway.
+    # podman-compose doesn't support Docker Compose v2's `--wait` flag
+    # and the singleton services define no healthchecks
+    # So we don't use it here
     COMPOSE_UP_FLAGS="-d"
-    # Rootless Podman remaps container UIDs through /etc/subuid/subgid
-    # which would make host bind mounts  come out owned by the wrong UID
-    # from the host's perspective.
-    # --userns=keep-id maps the container's UID 1:1 onto the host's,
-    # Docker rejects this flag. Applied via --override-config for Podman
-    # shellcheck disable=SC2034 # consumed by ccc/ccc-rebuild after sourcing this file; arrays can't be exported
-    DEVCONTAINER_OVERRIDE_ARGS=(--override-config "$DEVCONTAINER_DIR/devcontainer.podman.json")
 else
     COMPOSE_FILE="$DEVCONTAINER_DIR/docker-compose.yml"
+    AGENT_COMPOSE_FILE="$DEVCONTAINER_DIR/docker-compose.agent.yml"
     COMPOSE_UP_FLAGS="-d --wait"
-    # shellcheck disable=SC2034 # consumed by ccc/ccc-rebuild after sourcing this file; arrays can't be exported
-    DEVCONTAINER_OVERRIDE_ARGS=()
 fi
 
-export ENGINE_BIN COMPOSE_CMD COMPOSE_FILE COMPOSE_UP_FLAGS
+export ENGINE_BIN COMPOSE_CMD COMPOSE_FILE AGENT_COMPOSE_FILE COMPOSE_UP_FLAGS

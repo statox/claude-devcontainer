@@ -1,10 +1,21 @@
 #!/bin/bash
 set -euo pipefail
 
-# ~/.claude is a persistent named volume (session state, projects/, shell-snapshots/, etc.)
-# In every container we symlink the config files from claude/ in this repo
-# to ~/.claude in the container.
-# This way this repo can track the modifications from the host and from the container
+# Provisioning for agent container:
+# - Symlink config files
+# - Install MCP
+# - Install claude plugins
+# - Install repo dependencies with `mise`
+# - Create shell aliases in container
+#
+# This runs on every `ccc` and `ccc-rebuild`
+# IMPORTANT:
+# - Make sure to keep steps idempotent (re-run against existing container)
+# - Make sure to keep them as light as possible as they impact the container start time
+
+# Share config file between host and container
+# Symlink claude/ config files from this repo into ~/.claude in the container
+# Allows to track all modifications on host
 CLAUDE_HOME="$HOME/.claude"
 REPO_CLAUDE="$HOME/.claude-devcontainer/claude"
 
@@ -68,5 +79,5 @@ fi
 sudo -E mise bootstrap --yes
 
 # Aliases to start claude in the container
-echo "alias cc='claude'" >> /home/dev/.bash_aliases
+echo "alias cc='claude'" > /home/dev/.bash_aliases
 echo "alias ccd='claude --dangerously-skip-permissions'" >> /home/dev/.bash_aliases

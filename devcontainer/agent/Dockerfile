@@ -26,7 +26,7 @@ RUN (getent group "$USER_GID" >/dev/null || groupadd -g "$USER_GID" dev) \
     && useradd -m -s /bin/bash -u "$USER_UID" -g "$USER_GID" dev
 
 # Allow dev to run mise with sudo
-# Used in postCreate.sh to install system dependencies from repo's .mise.toml
+# Used in provision.sh to install system dependencies from repo's .mise.toml
 RUN echo "dev ALL=(root) NOPASSWD:SETENV: /usr/local/bin/mise" > /etc/sudoers.d/dev-mise \
     && chmod 0440 /etc/sudoers.d/dev-mise
 
@@ -37,5 +37,5 @@ WORKDIR /workdir
 # ownership instead of being root-owned and unwritable.
 RUN mkdir -p /home/dev/.config/glab-cli /home/dev/.claude
 
-COPY --chown=${USER_UID}:${USER_GID} postCreate.sh /home/dev/postCreate.sh
-RUN chmod 755 /home/dev/postCreate.sh
+COPY --chown=${USER_UID}:${USER_GID} provision.sh /home/dev/provision.sh
+RUN chmod 755 /home/dev/provision.sh

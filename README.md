@@ -20,7 +20,7 @@ Security
 - Run dangerous tools (e.g. requiring access to host D-BUS) in isolated containers to limit the host
 
 Developper experience
-- Use standard tooling (devcontainers, docker/podman compose) to easily modify the setup
+- Use standard tooling (docker/podman compose) to easily modify the setup
 - Use versioned Claude customizations (`CLAUDE.md`, skill, MCP configurations)
 - Automatically install marketplaces and plugins on launch
 
@@ -36,7 +36,6 @@ Exhaustive Claude Code configuration
 System requirements:
 
 - `docker` with Compose v2, or `podman` 4.7+ **and** `podman-compose`
-- `devcontainer` cli. See [devcontainers/cli](https://github.com/devcontainers/cli)
 
 ## Setup
 
@@ -63,13 +62,13 @@ Once you followed the setup:
 - Run `ccc` to open Claude CLI with the current directory mounted in the container
     - The first run requires to build the different Docker images which takes several minutes
 
-After running `ccc` Docker (or Podman depending on you value of `CLAUDE_DEVCONTAINER_ENGINE`) should show several running containers:
+After running `ccc` Docker (or Podman) should show several running containers:
 
 - `devcontainer-mcp-*` for the different MCP containers
 - `devcontainer-claude-desktop-notification` If using Docker on Linux
-- `vsc-claude_devcontainer-[uuid]` for each directory where you ran `ccc`
+- `<dirname>-<hash>-agent-1` for each directory where you ran `ccc` (`<dirname>` is the current directory's basename, `<hash>` disambiguates directories that share a basename)
 
-In `vsc-claude_devcontainer-[uuid]` the current directory of the host is mounted to `/workdir` in the container.
+In `<dirname>-<hash>-agent-1` the current directory of the host is mounted to `/workdir` in the container.
 
 To inspect/manage the singleton services without going through the full flow use the helper `ccc-compose`:
 
@@ -90,6 +89,18 @@ The selection for the engine is as follow:
 
 This can be overriden by setting the environment variable `CLAUDE_DEVCONTAINER_ENGINE` to either `docker` or `podman`
 
+### Orphaned containers after renaming/moving a directory
+
+The agent container's name is derived from the workspace directory's path. If you rename or move a directory you previously ran `ccc` in, the next `ccc` there creates a *new* container under a new name — the old one is left running/stopped under its old name. It holds no per-workspace state (Claude session data and `glab` auth live in shared volumes, not in the container), so it's safe to remove:
+
+The agent container's name is derived from the workspace directory's path. After renaming or moving a directory `ccc` will create a new agent container.
+
+That leaves a useless container with the old name. This container is safe to remove.
+
+```shell
+docker ps -a
+docker compose -p <old-project-name> down
+```
 
 ### CLI Usage
 
@@ -105,13 +116,13 @@ ccd     # Alias to `claude --dangerously-skip-permissions`
 
 ## Configuration
 
-You can configure all the claude agents by editing the files in [`claude/`](./claude). All the files in this directory are symlinked by [`postCreate.sh`](./devcontainer/agent/postCreate.sh) to the container when it is created. Modifying this directory requires to run `ccc-rebuild` to get the changes in the containers.
+You can configure all the claude agents by editing the files in [`claude/`](./claude). All the files in this directory are symlinked by [`provision.sh`](./devcontainer/agent/provision.sh) to the container when it is created. Modifying this directory requires to run `ccc-rebuild` to get the changes in the containers.
 
 - [`CLAUDE.md`](./claude/CLAUDE.md) is the user-scoped configuration Claude will always have in its context.
 - [`settings.json`](./claude/settings.json) Claude's settings file (permissions, hooks, env variables, ...)
 - [`skills/`](./claude/skills/) contains the skills you create
-- [`plugins.json`](./claude/plugins.json) _This is a custom file for this repository._ The [`postCreate.sh`](./devcontainer/agent/postCreate.sh) reads this file and runs `claude plugin marketplace add ...` and `claude plugin install ... --scope user` for each entry so that Claude Code always has your configured plugins.
-- [`mcp-servers.json`](./claude/mcp-servers.json) _This is a custom file for this repository._ The [`postCreate.sh`](./devcontainer/agent/postCreate.sh) reads this file and inject it into the container's `$HOME/.claude.json` file so that Claude Code always has your configured MCP servers.
+- [`plugins.json`](./claude/plugins.json) _This is a custom file for this repository._ The [`provision.sh`](./devcontainer/agent/provision.sh) reads this file and runs `claude plugin marketplace add ...` and `claude plugin install ... --scope user` for each entry so that Claude Code always has your configured plugins.
+- [`mcp-servers.json`](./claude/mcp-servers.json) _This is a custom file for this repository._ The [`provision.sh`](./devcontainer/agent/provision.sh) reads this file and inject it into the container's `$HOME/.claude.json` file so that Claude Code always has your configured MCP servers.
 - [`statusline-command.sh`](./claude/statusline-command.sh) This is the script which controls what the command line displays in the Claude Code cli. It is linked by the `statusLine` key in [`settings.json`](./claude/settings.json)
 - [`notifications/`](./claude/notifications) This is a custom script used to allow Claude Code cli sending Desktop notifications on Linux. See the dedicated section in this README
 
@@ -136,7 +147,7 @@ To expose LSP servers to Claude Code we use [mcp-language-server](https://github
 
 #### Installating a LSP Server as an agent sidecar server
 
-- Update [`postCreate.sh`](./devcontainer/agent/postCreate.sh) to add the installation of the server
+- Update [`mise.toml`](./devcontainer/agent/mise.toml) to add the installation of the server
 - Update [`mcp-servers.json`](./claude/mcp-servers.json) to make `mcp-language-server` expose the LSP
 
 ```json
@@ -251,10 +262,10 @@ The MCP should now be authenticated. (Maybe you need to restart Claude? To be te
 
 ## System tools
 
-To provide the agent with more system tools (`shellcheck`, `jq`, ...) you have two options:
+We use [`mise.toml`](./devcontainer/agent/mise.toml) to define all the packages, language runtimes and
+other tools (`shellcheck`, `jq`, ...) which must be installed in the agent container.
 
-- [Devcontainer features](https://containers.dev/features): The agent container is built with [`devcontainer.json`](./devcontainer/devcontainer.json), this allows to use standard features to add new tools (this is how we install `claude-code` or `uv` for example)
-- [Dockerfile](./devcontainer/agent/Dockerfile): For tools which are not available as devcontainer features you can change the agent's Dockerfile which is applied after applying the devcontainer features. (This is how we install `glab` cli for example)
+The system automatically runs `mise` to pick up repo-specific dependencies.
 
 
 ## Desktop notifications
@@ -272,7 +283,7 @@ This setup includes an experimental desktop notification feature. For now it wor
 
 On the agent side:
 - [`settings.json`](./claude/settings.json) configures two hooks: `Notification` and `Stop` which make Claude call the script [`bell-notify.sh`](./claude/notifications/bell-notify.sh) when it is waiting for the user's input.
-- [`bell-notify.sh`](./claude/notifications/bell-notify.sh) is symlinked at container creation with [`postCreate.sh`](./devcontainer/agent/postCreate.sh)
+- [`bell-notify.sh`](./claude/notifications/bell-notify.sh) is symlinked by [`provision.sh`](./devcontainer/agent/provision.sh)
 - When invoked `bell-notify.sh` uses `socat` to send a message to the `claude-desktop-notification` container which triggers the notification
 
 To run `paplay` the service needs to access the D-BUS and PulseAudio deamons of the host, which requires tweaking its isolation in `docker-compose.yml` and mounting the daemons sockets to the container.
@@ -301,6 +312,12 @@ but we want to avoid creating tying the configuration of the repos and the agent
 I haven't found a good solution yet.
 
 ### Long build time
+
+UPDATE: We removed the devcontainer dependency completely. With the new system using
+pure docker/podman, `mise` for setup, and fixed image names in docker-compose the problem
+seems less annoying. Keeping an eye on that.
+
+ORIGINAL LOG:
 
 The rebuild time can get fairly long:
 

@@ -1,0 +1,37 @@
+services:
+  agent:
+    build:
+      context: ./agent
+      args:
+        USER_UID: "${DEV_UID}"
+        USER_GID: "${DEV_GID}"
+    image: claude-devcontainer-agent
+    command: ["sleep", "infinity"]
+    network_mode: host
+    working_dir: /workdir
+    volumes:
+      - "${WORKSPACE_FOLDER}:/workdir"
+      - claude-home:/home/dev/.claude
+      - glab-config:/home/dev/.config/glab-cli
+      - claude-desktop-notification-sock:/run/claude-desktop-notification
+      - mcp-context7-sock:/run/mcp-context7
+      - "${CLAUDE_DEVCONTAINER_HOME}:/home/dev/.claude-devcontainer"
+      - "${HOME}/.claude.json:/home/dev/.claude.json"
+      - "${HOME}/.netrc:/home/dev/.netrc"
+    # UIDs mapping - Rootless Podman remaps container UIDs through /etc/subuid/subgid
+    # Use keep-id for a 1:1 mapping to have host's values when running useradd in Dockerfile
+    userns_mode: keep-id
+
+volumes:
+  # Persist Claude session state
+  claude-home:
+    name: claude-home
+  # Persists gitlab cli authentication
+  glab-config:
+    name: glab-config
+  # Socket for notification container communication
+  claude-desktop-notification-sock:
+    name: claude-desktop-notification-sock
+  # Socket for context7 container communication
+  mcp-context7-sock:
+    name: mcp-context7-sock

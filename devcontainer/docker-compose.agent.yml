@@ -1,0 +1,38 @@
+services:
+  agent:
+    build:
+      context: ./agent
+      args:
+        USER_UID: "${DEV_UID}"
+        USER_GID: "${DEV_GID}"
+    # Fixed image name allow to share the built image between all workspaces
+    # Avoid rebuilding once per repo
+    image: claude-devcontainer-agent
+    # Keeps the container alive between `ccc` invocations so `exec` has
+    # something to attach to.
+    command: ["sleep", "infinity"]
+    network_mode: host
+    working_dir: /workdir
+    volumes:
+      - "${WORKSPACE_FOLDER}:/workdir"
+      - claude-home:/home/dev/.claude
+      - glab-config:/home/dev/.config/glab-cli
+      - claude-desktop-notification-sock:/run/claude-desktop-notification
+      - mcp-context7-sock:/run/mcp-context7
+      - "${CLAUDE_DEVCONTAINER_HOME}:/home/dev/.claude-devcontainer"
+      - "${HOME}/.claude.json:/home/dev/.claude.json"
+      - "${HOME}/.netrc:/home/dev/.netrc"
+
+volumes:
+  # Persist Claude session state
+  claude-home:
+    name: claude-home
+  # Persists gitlab cli authentication
+  glab-config:
+    name: glab-config
+  # Socket for notification container communication
+  claude-desktop-notification-sock:
+    name: claude-desktop-notification-sock
+  # Socket for context7 container communication
+  mcp-context7-sock:
+    name: mcp-context7-sock

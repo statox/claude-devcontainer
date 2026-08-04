@@ -1,3 +1,0 @@
-{
-    "runArgs": ["--userns=keep-id"]
-}
