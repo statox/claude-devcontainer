@@ -1,7 +1,7 @@
 {
   "context7": {
-    "command": "nc",
-    "args": ["mcp-context7", "3002"]
+    "command": "socat",
+    "args": ["-", "UNIX-CONNECT:/run/mcp-context7/mcp.sock,retry=10,interval=1"]
   },
   "typescript": {
     "command": "mcp-language-server",

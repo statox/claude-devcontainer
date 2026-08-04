@@ -2,15 +2,15 @@ services:
   mcp-context7:
     build:
       context: ./mcp-context7
+      args:
+        USER_UID: "${DEV_UID}"
+        USER_GID: "${DEV_GID}"
     restart: unless-stopped
-    networks:
-      - mcp-net
+    volumes:
+      - mcp-context7-sock:/run/mcp-context7
     env_file:
       - ${CONTEXT7_ENV_FILE} # Credentials - see scripts/lib/env.sh)
 
-networks:
-  # Fixed name so the agent's `--network=mcp-net` runArg (devcontainer.json)
-  # attaches to this network by name, rather than Compose's default
-  # project-prefixed naming.
-  mcp-net:
-    name: mcp-net
+volumes:
+  mcp-context7-sock:
+    name: mcp-context7-sock
