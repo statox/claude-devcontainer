@@ -31,7 +31,7 @@ source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 [ -e "$HOME/.netrc" ] || touch "$HOME/.netrc"
 mkdir -p "${WORKSPACE_FOLDER}/.venv-claude"
 
-# Start the global singleton services (mcp-everything, and claude-desktop-notification under Docker) — idempotent if already running.
+# Start the global singleton services (mcp containers, and claude-desktop-notification under Docker) — idempotent if already running.
 # shellcheck disable=SC2086
 $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 

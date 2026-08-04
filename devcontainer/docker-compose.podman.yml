@@ -1,11 +1,4 @@
 services:
-  mcp-everything:
-    build:
-      context: ./mcp-everything
-    restart: unless-stopped
-    networks:
-      - mcp-net
-
   mcp-context7:
     build:
       context: ./mcp-context7
