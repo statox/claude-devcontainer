@@ -16,4 +16,3 @@ fi
 alias ccc="$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/ccc"
 alias ccc-compose="$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/ccc-compose"
 alias ccc-rebuild="$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/ccc-rebuild"
-alias ccc-code="$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/ccc-code"

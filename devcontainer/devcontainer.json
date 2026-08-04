@@ -8,13 +8,6 @@
             "USER_GID": "${localEnv:DEV_GID}"
         }
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "anthropic.claude-code"
-            ]
-        }
-    },
     "workspaceFolder": "/workdir",
     "workspaceMount": "source=${localWorkspaceFolder},target=/workdir,type=bind",
     "remoteUser": "dev",
@@ -29,7 +22,6 @@
     "shutdownAction": "stopContainer",
     "mounts": [
         "source=claude-home,target=/home/dev/.claude,type=volume",
-        "source=vscode-server,target=/home/dev/.vscode-server,type=volume",
         "source=glab-config,target=/home/dev/.config/glab-cli,type=volume",
         "source=claude-desktop-notification-sock,target=/run/claude-desktop-notification,type=volume",
         "source=mcp-context7-sock,target=/run/mcp-context7,type=volume",

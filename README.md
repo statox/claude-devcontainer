@@ -6,7 +6,6 @@ This repo is a collection of scripts to run Claude Code and its MCP servers in i
 
 - Run Claude Code in a dedicated container by host directory
 - Run MCP servers as long-lived singletons - Allows isolated credential access
-- Run VS Code Claude extension in the Claude container for easy VS Code integration
 - Supports Docker and Podman runtimes
 
 **Important** Not tested on MacOS yet. Tested exclusively on Ubuntu 24.
@@ -24,7 +23,6 @@ Developper experience
 - Use standard tooling (devcontainers, docker/podman compose) to easily modify the setup
 - Use versioned Claude customizations (`CLAUDE.md`, skill, MCP configurations)
 - Automatically install marketplaces and plugins on launch
-- Allow using Claude Code on the CLI or in VS Code extension
 
 Exhaustive Claude Code configuration
 - [`.claude/` configuration directory](https://code.claude.com/docs/en/settings)
@@ -39,9 +37,6 @@ System requirements:
 
 - `docker` with Compose v2, or `podman` 4.7+ **and** `podman-compose`
 - `devcontainer` cli. See [devcontainers/cli](https://github.com/devcontainers/cli)
-- If using VS Code:
-    - The devcontainer extension installed (VS Code should prompt for installing it automatically)
-    - The standard `xxd` utility
 
 ## Setup
 
@@ -58,7 +53,7 @@ System requirements:
    export CLAUDE_DEVCONTAINER_ENGINE='podman'
    ```
 3. Open a new shell (or `source` your rc file). This defines the `ccc`,
-   `ccc-code`, `ccc-compose`, and `ccc-rebuild` commands.
+   `ccc-compose`, and `ccc-rebuild` commands.
 
 ## How to use
 
@@ -67,9 +62,8 @@ Once you followed the setup:
 - Navigate to any directory in your terminal
 - Run `ccc` to open Claude CLI with the current directory mounted in the container
     - The first run requires to build the different Docker images which takes several minutes
-- Run `ccc-code` to open VS Code with the Claude Code extension running in the container
 
-After running `ccc` or `ccc-code` Docker (or Podman depending on you value of `CLAUDE_DEVCONTAINER_ENGINE`) should show several running containers:
+After running `ccc` Docker (or Podman depending on you value of `CLAUDE_DEVCONTAINER_ENGINE`) should show several running containers:
 
 - `devcontainer-mcp-*` for the different MCP containers
 - `devcontainer-claude-desktop-notification` If using Docker on Linux
@@ -108,18 +102,6 @@ claude  # Start the claude cli
 cc      # Alias to `claude`
 ccd     # Alias to `claude --dangerously-skip-permissions`
 ```
-
-### VS Code usage
-
-VS Code's Claude Code extension can run confined inside the agent container used by the CLI. Rather than the usual "Reopen in Container" flow (which expects a `.devcontainer/devcontainer.json` inside the repo), VS Code attaches to the container we create.
-
-In a terminal navigate to the directory you want to use and run `ccc-code`. This opens VS Code UI.
-
-The first time running this command VS Code might prompt you to install the Devcontainer extension and to trust the Claude extension which install automatically (See `customizations.vscode.extensions` in [`devcontainer.json`](./devcontainer/devcontainer.json).
-
-And the bottom left of the UI you should see VS Code connected to a remote environment. The first time might take several minutes while the containers are being built.
-
-**Warning** The VS Code integration relies on an undocumented feature. This might break in the future and would benefit from a stronger integation.
 
 ## Configuration
 
