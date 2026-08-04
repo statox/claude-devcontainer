@@ -1,50 +1,38 @@
 #!/bin/bash
 set -euo pipefail
 
-# ~/.claude is a persistent named volume (holds session state, projects/,
-# shell-snapshots/, etc.). The config files tracked in this repo's claude/
-# directory are symlinked in on every container creation so host <-> container
-# edits stay live in both directions.
+# ~/.claude is a persistent named volume (session state, projects/, shell-snapshots/, etc.)
+# In every container we symlink the config files from claude/ in this repo
+# to ~/.claude in the container.
+# This way this repo can track the modifications from the host and from the container
 CLAUDE_HOME="$HOME/.claude"
 REPO_CLAUDE="$HOME/.claude-devcontainer/claude"
 
 mkdir -p "$CLAUDE_HOME"
 
-# ~/.claude/skills is the one tracked entry that's a directory rather than a
-# plain file. If it already exists as a real directory (e.g. a skill created
-# directly inside a container before this symlink existed), `ln -sf <dir>
-# <existing-dir>` below would nest a symlink inside it instead of replacing
-# it. This repo's version always wins: clear out a real directory first.
+# If the container created the skills directory before us we remove it before
+# creating the symlink
 if [ -d "$CLAUDE_HOME/skills" ] && [ ! -L "$CLAUDE_HOME/skills" ]; then
     rm -rf "$CLAUDE_HOME/skills"
 fi
 
+# Symlink the config files and directories from claude/
 if [ -d "$REPO_CLAUDE" ]; then
     for f in "$REPO_CLAUDE"/*; do
-        # -n: CLAUDE_HOME lives in a volume shared by every repo's container,
-        # so on the second and later container creations this symlink already
-        # exists. Without -n, `ln -sf` would dereference an existing
-        # symlink-to-directory and nest the new link inside it instead of
-        # replacing it - which is how a stray `skills/skills` symlink ended up
-        # created inside the tracked skills/ directory itself.
+        # Use -n to prevent ln from nesting the file if it already exists
+        # in the container
         ln -sfn "$f" "$CLAUDE_HOME/$(basename "$f")"
     done
 fi
 
-# Merge the tracked mcpServers config into ~/.claude.json (a bind-mounted
-# file, not part of the symlink loop above) without touching any of its
-# other content. Idempotent: safe to re-run on every container creation, and
-# any server keys present in mcp-servers.json always win over a stale entry
-# left in ~/.claude.json from a previous run.
+# Merge the custom mcp-servers.json config into the final ~/.claude.json of
+# the container.
+# Idempotent, always take the version from mcp-servers.json in case of conflict
 MCP_SERVERS_FILE="$REPO_CLAUDE/mcp-servers.json"
 CLAUDE_JSON="$HOME/.claude.json"
 if [ -f "$MCP_SERVERS_FILE" ]; then
     [ -f "$CLAUDE_JSON" ] || echo '{}' > "$CLAUDE_JSON"
-    # ~/.claude.json is a bind mount (devcontainer.json), i.e. a mount point
-    # in this container's mount namespace. `mv`/rename(2) onto a mount point
-    # fails with EBUSY ("Device or resource busy") since it would require
-    # detaching the mount. Overwrite the file's contents in place instead of
-    # replacing the inode.
+    # We can't rm ~/.claude.json because it is a mount point, rewrite it instead
     jq --slurpfile mcp "$MCP_SERVERS_FILE" \
         '.mcpServers = ((.mcpServers // {}) + $mcp[0])' \
         "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp"
@@ -52,24 +40,10 @@ if [ -f "$MCP_SERVERS_FILE" ]; then
     rm "$CLAUDE_JSON.tmp"
 fi
 
-# typescript-language-server backs the "typescript" MCP server
-# (claude/mcp-servers.json), which runs mcp-language-server as a local stdio
-# process against /workdir. Installed here rather than in agent/Dockerfile
-# because npm only exists after the node feature is layered onto the image.
-command -v typescript-language-server >/dev/null 2>&1 || npm install -g typescript typescript-language-server
-
-# pyright backs the "python" MCP server (claude/mcp-servers.json), which
-# runs mcp-language-server as a local stdio process against /workdir.
-# Installed here rather than in agent/Dockerfile because uv only exists
-# after the uv feature is layered onto the image.
-command -v pyright-langserver >/dev/null 2>&1 || uv tool install pyright
-
-# Install the Claude Code plugins declared in plugins.json (tracked in this
-# repo) idempotently, on every container creation. Marketplaces are matched
-# by GitHub source ("owner/repo"); plugins by their installed "id"
-# ("name@marketplace"). Already-added marketplaces / already-installed
-# plugins are skipped, so re-running this is a no-op except for anything new
-# added to plugins.json since the last container creation.
+# Install plugins from the custom plugins.json
+# - Marketplaces matched by GitHub source ("owner/repo")
+# - Plugins by their installed "id" ("name@marketplace")
+# Skip already installed marketplaces/plugins
 PLUGINS_FILE="$REPO_CLAUDE/plugins.json"
 if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
     known_marketplaces="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
@@ -89,6 +63,10 @@ if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
     done < <(jq -r '.plugins[]' "$PLUGINS_FILE")
 fi
 
-# Aliases to start claude on the container
+# Run mise to install tooling if the container has a mise configuration
+# -E preserves MISE_*/PATH so root resolves the same config/data dirs as dev.
+sudo -E mise bootstrap --yes
+
+# Aliases to start claude in the container
 echo "alias cc='claude'" >> /home/dev/.bash_aliases
 echo "alias ccd='claude --dangerously-skip-permissions'" >> /home/dev/.bash_aliases

@@ -1,0 +1,28 @@
+[bootstrap.packages]
+"apt:bash" = "latest"
+"apt:jq" = "latest"
+"apt:less" = "latest"
+"apt:netcat-openbsd" = "latest"
+"apt:openssh-client" = "latest"
+"apt:ripgrep" = "latest"
+"apt:shellcheck" = "latest"
+"apt:socat" = "latest"
+"apt:vim" = "latest"
+
+[tools]
+# Language runtimes
+node = "26"
+python = "3.14"
+go = "latest"
+uv = "latest"
+
+# Claude
+claude-code = "latest"
+"go:github.com/isaacphi/mcp-language-server" = "latest"
+"npm:typescript-language-server" = "latest"
+"pipx:pyright" = "latest"
+
+# Dev tooling
+terraform = "latest"
+gh = "latest"
+"gitlab:gitlab-org/cli" = "latest"

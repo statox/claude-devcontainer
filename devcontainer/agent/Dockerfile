@@ -1,59 +1,36 @@
-# Builds mcp-language-server (Go binary) in an isolated stage so it doesn't
-# depend on the node feature, which is layered onto this image by the
-# devcontainers CLI *after* this Dockerfile builds.
-FROM docker.io/library/golang:1.24-alpine AS mcp-language-server-builder
-RUN go install github.com/isaacphi/mcp-language-server@latest
+FROM debian:13-slim
 
-FROM docker.io/library/ubuntu:24.04
-
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
-    ca-certificates \
-    curl \
-    git \
-    jq \
-    less \
-    netcat-openbsd \
-    openssh-client \
-    ripgrep \
-    shellcheck \
-    socat \
-    vim \
+RUN apt-get update  \
+    && apt-get -y --no-install-recommends install  \
+        sudo curl git ca-certificates build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the GitLab CLI (glab) from the official release .deb
-ARG GLAB_VERSION=1.103.0
-RUN curl -fsSL -o /tmp/glab.deb \
-    "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_amd64.deb" \
-    && apt-get install -y --no-install-recommends /tmp/glab.deb \
-    && rm -f /tmp/glab.deb /var/lib/apt/lists/* 2>/dev/null || true
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ENV MISE_DATA_DIR="/mise"
+ENV MISE_CONFIG_DIR="/mise"
+ENV MISE_CACHE_DIR="/mise/cache"
+ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+ENV PATH="/mise/shims:$PATH"
+# ENV MISE_VERSION="..."
 
-COPY --from=mcp-language-server-builder /go/bin/mcp-language-server /usr/local/bin/mcp-language-server
+RUN curl https://mise.run | sh
+
+COPY mise.toml /mise/config.toml
+RUN mise bootstrap --yes
 
 # Create dev user with UID/GID matching the host user, passed in as build
 # args (see scripts/lib/env.sh + devcontainer.json's build.args). This
 # matters on macOS, where the default host user UID (501) differs from the
-# Dockerfile's old hardcoded UID (1000): devcontainer CLI's
-# updateRemoteUserUID remaps the user's UID *after* this image is built, but
-# devcontainer features layered onto the image between build and remap (e.g.
-# the claude-code feature) still run as the build-time UID. Anything they
-# write under /tmp keyed to that UID (Claude Code itself namespaces scratch
-# dirs as /tmp/claude-<uid>) becomes inaccessible once the remap changes the
-# UID to something else — which is a no-op on most Linux hosts (UID 1000 by
-# convention) but not on macOS, which is why this only broke there. Building
-# with the correct UID/GID from the start avoids the remap entirely.
+# Dockerfile's old hardcoded UID (1000).
 ARG USER_UID=1000
 ARG USER_GID=1000
-# ubuntu:24.04 ships a pre-existing "ubuntu" user/group at 1000:1000; userdel
-# -r removes the user and its home dir but leaves the group behind, so it
-# must be dropped too before a same-GID "dev" group can be created (the
-# common case, since USER_GID defaults to 1000).
-RUN userdel -r ubuntu 2>/dev/null || true
-RUN groupdel ubuntu 2>/dev/null || true
 RUN (getent group "$USER_GID" >/dev/null || groupadd -g "$USER_GID" dev) \
     && useradd -m -s /bin/bash -u "$USER_UID" -g "$USER_GID" dev
+
+# Allow dev to run mise with sudo
+# Used in postCreate.sh to install system dependencies from repo's .mise.toml
+RUN echo "dev ALL=(root) NOPASSWD:SETENV: /usr/local/bin/mise" > /etc/sudoers.d/dev-mise \
+    && chmod 0440 /etc/sudoers.d/dev-mise
 
 USER dev
 WORKDIR /workdir

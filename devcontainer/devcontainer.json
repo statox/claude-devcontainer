@@ -8,15 +8,6 @@
             "USER_GID": "${localEnv:DEV_GID}"
         }
     },
-    "features": {
-        "ghcr.io/devcontainers/features/github-cli:1": {},
-        "ghcr.io/devcontainers/features/node": {
-            "version": "lts"
-        },
-        "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
-        "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {},
-        "ghcr.io/devcontainers/features/terraform:1": {}
-    },
     "customizations": {
         "vscode": {
             "extensions": [
