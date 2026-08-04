@@ -308,6 +308,16 @@ If this is still a problem, contact the author of this repo.
 
 ## TODO
 
+### Agent network=host
+
+For now the agent container runs with `network=host` that allows it to reach other
+docker containers created in external repos we need to work with.
+
+But this is not ideal. We would like the agent to reach only the repo-specific networks
+but we want to avoid creating tying the configuration of the repos and the agents.
+
+I haven't found a good solution yet.
+
 ### Long build time
 
 The rebuild time can get fairly long:

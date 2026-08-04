@@ -23,6 +23,9 @@
     "containerEnv": {
         "TMPDIR": "/home/dev/.local/tmp"
     },
+    "runArgs": [
+        "--network=host"
+    ],
     "shutdownAction": "stopContainer",
     "mounts": [
         "source=${localWorkspaceFolder}/.venv-claude,target=/workdir/.venv,type=bind",
