@@ -3,6 +3,10 @@
     "command": "socat",
     "args": ["-", "UNIX-CONNECT:/run/mcp-context7/mcp.sock,retry=10,interval=1"]
   },
+  "thiri": {
+    "command": "socat",
+    "args": ["-", "UNIX-CONNECT:/run/mcp-thiri/mcp.sock,retry=10,interval=1"]
+  },
   "typescript": {
     "command": "mcp-language-server",
     "args": ["--workspace", "/workdir", "--lsp", "typescript-language-server", "--", "--stdio"]

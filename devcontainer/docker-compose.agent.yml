@@ -19,6 +19,7 @@ services:
       - glab-config:/home/dev/.config/glab-cli
       - claude-desktop-notification-sock:/run/claude-desktop-notification
       - mcp-context7-sock:/run/mcp-context7
+      - mcp-thiri-sock:/run/mcp-thiri
       - "${CLAUDE_DEVCONTAINER_HOME}:/home/dev/.claude-devcontainer"
       - "${HOME}/.claude.json:/home/dev/.claude.json"
       - "${HOME}/.netrc:/home/dev/.netrc"
@@ -36,3 +37,6 @@ volumes:
   # Socket for context7 container communication
   mcp-context7-sock:
     name: mcp-context7-sock
+  # Socket for thiri container communication
+  mcp-thiri-sock:
+    name: mcp-thiri-sock

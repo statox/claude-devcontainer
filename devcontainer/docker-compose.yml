@@ -32,6 +32,18 @@ services:
     env_file:
       - ${CONTEXT7_ENV_FILE} # Credentials - see scripts/lib/env.sh)
 
+  mcp-thiri:
+    build:
+      context: ./mcp-thiri
+      args:
+        USER_UID: "${DEV_UID}"
+        USER_GID: "${DEV_GID}"
+    restart: unless-stopped
+    volumes:
+      - mcp-thiri-sock:/run/mcp-thiri
+    env_file:
+      - ${THIRI_ENV_FILE} # Credentials - see scripts/lib/env.sh)
+
 volumes:
   # Socket for notification container communication
   claude-desktop-notification-sock:
@@ -39,3 +51,6 @@ volumes:
   # Socket for context7 container communication
   mcp-context7-sock:
     name: mcp-context7-sock
+  # Socket for thiri container communication
+  mcp-thiri-sock:
+    name: mcp-thiri-sock

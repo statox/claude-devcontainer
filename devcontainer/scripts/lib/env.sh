@@ -36,3 +36,7 @@ AGENT_COMPOSE_PROJECT_NAME="${_slug}-${_hash}"
 MCP_CREDS_ENV_DIR="${MCP_CREDS_ENV_DIR:-$HOME/.config/claude-devcontainer}"
 export CONTEXT7_ENV_FILE="$MCP_CREDS_ENV_DIR/context7.env"
 [ -f "$CONTEXT7_ENV_FILE" ] || CONTEXT7_ENV_FILE=/dev/null
+
+# Thiri credentials - same pattern as Context7 above
+export THIRI_ENV_FILE="$MCP_CREDS_ENV_DIR/thiri.env"
+[ -f "$THIRI_ENV_FILE" ] || THIRI_ENV_FILE=/dev/null
