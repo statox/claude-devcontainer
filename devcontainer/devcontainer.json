@@ -28,7 +28,6 @@
     ],
     "shutdownAction": "stopContainer",
     "mounts": [
-        "source=${localWorkspaceFolder}/.venv-claude,target=/workdir/.venv,type=bind",
         "source=claude-home,target=/home/dev/.claude,type=volume",
         "source=vscode-server,target=/home/dev/.vscode-server,type=volume",
         "source=glab-config,target=/home/dev/.config/glab-cli,type=volume",
