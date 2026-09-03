@@ -4,10 +4,12 @@
 "apt:less" = "latest"
 "apt:netcat-openbsd" = "latest"
 "apt:openssh-client" = "latest"
+"apt:procps" = "latest" # Debian doesn't ship `ps` by default
 "apt:ripgrep" = "latest"
 "apt:shellcheck" = "latest"
 "apt:socat" = "latest"
 "apt:vim" = "latest"
+"apt:wget" = "latest"
 
 [tools]
 # Language runtimes
@@ -15,6 +17,9 @@ node = "26"
 python = "3.14"
 go = "latest"
 uv = "latest"
+
+# Files manipulation
+pandoc = "latest"
 
 # Claude
 claude-code = "latest"
