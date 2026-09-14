@@ -32,4 +32,5 @@ If you need to access resources outside of the container or run commands outside
 - When a superpower tries to create documents never use `docs/superpowers` instead use `superpowers/` directly because `docs/` is often used for temporary build directories
 
 ## Context7
-Always use Context7 when to look up public library/API documentation, code generation, setup or configuration steps without having the user to explicitly ask.
+You have access to the Context7 mcp.
+Always use it when looking up public library/API documentation, code generation, setup or configuration steps
