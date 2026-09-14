@@ -57,26 +57,35 @@ fi
 # Skip already installed marketplaces/plugins
 PLUGINS_FILE="$REPO_CLAUDE/plugins.json"
 if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
-    known_marketplaces="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
-    while IFS= read -r marketplace; do
-        [ -n "$marketplace" ] || continue
-        echo "$known_marketplaces" | jq -e --arg src "$marketplace" \
-            'any(.[]; .repo == $src)' >/dev/null \
-            || claude plugin marketplace add "$marketplace"
-    done < <(jq -r '.marketplaces[]' "$PLUGINS_FILE")
+    # Run from $HOME, not /workdir: this only manages Claude Code's own
+    # global plugin state, but `claude` resolves through a mise shim which
+    # would otherwise also parse the mounted repo's own mise config and
+    # fail outright if that config isn't trusted yet
+    (
+        cd "$HOME"
+        known_marketplaces="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
+        while IFS= read -r marketplace; do
+            [ -n "$marketplace" ] || continue
+            echo "$known_marketplaces" | jq -e --arg src "$marketplace" \
+                'any(.[]; .repo == $src)' >/dev/null \
+                || claude plugin marketplace add "$marketplace"
+        done < <(jq -r '.marketplaces[]' "$PLUGINS_FILE")
 
-    installed_plugins="$(claude plugin list --json 2>/dev/null || echo '[]')"
-    while IFS= read -r plugin; do
-        [ -n "$plugin" ] || continue
-        echo "$installed_plugins" | jq -e --arg id "$plugin" \
-            'any(.[]; .id == $id)' >/dev/null \
-            || claude plugin install "$plugin" --scope user
-    done < <(jq -r '.plugins[]' "$PLUGINS_FILE")
+        installed_plugins="$(claude plugin list --json 2>/dev/null || echo '[]')"
+        while IFS= read -r plugin; do
+            [ -n "$plugin" ] || continue
+            echo "$installed_plugins" | jq -e --arg id "$plugin" \
+                'any(.[]; .id == $id)' >/dev/null \
+                || claude plugin install "$plugin" --scope user
+        done < <(jq -r '.plugins[]' "$PLUGINS_FILE")
+    )
 fi
 
 # Run mise to install tooling if the container has a mise configuration
 # -E preserves MISE_*/PATH so root resolves the same config/data dirs as dev.
-sudo -E mise bootstrap --yes
+# Shows a mise prompt for trusting files.
+# Trust decisions persist in the mise-state volume
+sudo -E mise bootstrap
 
 # Aliases to start claude in the container
 echo "alias cc='claude'" > /home/dev/.bash_aliases

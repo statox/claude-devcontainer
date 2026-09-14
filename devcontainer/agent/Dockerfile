@@ -35,7 +35,7 @@ WORKDIR /workdir
 
 # Pre-create dirs owned by dev so named volumes mounted here inherit dev's
 # ownership instead of being root-owned and unwritable.
-RUN mkdir -p /home/dev/.config/glab-cli /home/dev/.claude
+RUN mkdir -p /home/dev/.config/glab-cli /home/dev/.claude /home/dev/.local/state/mise
 
 COPY --chown=${USER_UID}:${USER_GID} provision.sh /home/dev/provision.sh
 RUN chmod 755 /home/dev/provision.sh

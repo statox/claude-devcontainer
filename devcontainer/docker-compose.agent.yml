@@ -17,6 +17,7 @@ services:
       - "${WORKSPACE_FOLDER}:/workdir"
       - claude-home:/home/dev/.claude
       - glab-config:/home/dev/.config/glab-cli
+      - mise-state:/home/dev/.local/state/mise
       - claude-desktop-notification-sock:/run/claude-desktop-notification
       - mcp-context7-sock:/run/mcp-context7
       - mcp-thiri-sock:/run/mcp-thiri
@@ -31,6 +32,9 @@ volumes:
   # Persists gitlab cli authentication
   glab-config:
     name: glab-config
+  # Persists mise's trust decisions (and other state) across ccc-rebuild.
+  # Not a named volume to avoid `.mise.toml` to be trusted in all repos by default
+  mise-state:
   # Socket for notification container communication
   claude-desktop-notification-sock:
     name: claude-desktop-notification-sock

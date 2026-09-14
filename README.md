@@ -265,8 +265,22 @@ The MCP should now be authenticated. (Maybe you need to restart Claude? To be te
 We use [`mise.toml`](./devcontainer/agent/mise.toml) to define all the packages, language runtimes and
 other tools (`shellcheck`, `jq`, ...) which must be installed in the agent container.
 
-The system automatically runs `mise` to pick up repo-specific dependencies.
+The system automatically runs `mise` to pick up repo-specific dependencies: if the
+mounted repo has its own `mise.toml`/`.mise.toml`, it is bootstrapped alongside
+this repo's own tooling on every `ccc`/`ccc-rebuild`.
 
+### Trusting a repo's mise config
+
+`mise` requires config files to be explicitly trusted.
+We don't auto-trust the mounted repo's config. `ccc`/`ccc-rebuild` run
+`mise bootstrap` without `--yes` so that the user can accept the files with the mise interactive prompt.
+
+The decision to trust the files is stored in `mise-state` a nameless docker volume
+so that each repo persist the decision separately.
+
+Note:
+- When running `ccc` non-interactively (e.g. `ccc -p "..."`) mise can't prompt
+  and fails. Run an interactive `ccc` once first to accept the prompt.
 
 ## Desktop notifications
 
