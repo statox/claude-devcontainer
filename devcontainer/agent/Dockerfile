@@ -1,4 +1,6 @@
-FROM debian:13-slim
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update  \
     && apt-get -y --no-install-recommends install  \
@@ -23,11 +25,14 @@ COPY mise.toml /mise/config.toml
 RUN mise bootstrap packages apply --yes
 
 # UID/GID mapping - devcontainer/scripts/lib/env.sh exports the host's
-# DEV_UID/DEV_GID that we pass as args at build time
+# DEV_UID/DEV_GID that we pass as args at build time. Ubuntu's base image
+# already ships a uid/gid 1000 "ubuntu" user, so rather than risk a
+# collision by creating a second one, rename it to "dev" and retarget its
+# uid/gid to whatever the host passed in.
 ARG USER_UID=1000
 ARG USER_GID=1000
-RUN (getent group "$USER_GID" >/dev/null || groupadd -g "$USER_GID" dev) \
-    && useradd -m -s /bin/bash -u "$USER_UID" -g "$USER_GID" dev
+RUN groupmod -n dev -g "$USER_GID" ubuntu \
+    && usermod -l dev -u "$USER_UID" -d /home/dev -m ubuntu
 
 # Hand /mise to dev before any [tools] are installed into it (still cheap -
 # just config + package state so far), so both the agent's own tools below
