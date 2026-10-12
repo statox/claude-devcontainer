@@ -82,10 +82,19 @@ if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
 fi
 
 # Run mise to install tooling if the container has a mise configuration
-# -E preserves MISE_*/PATH so root resolves the same config/data dirs as dev.
 # Shows a mise prompt for trusting files.
 # Trust decisions persist in the mise-state volume
-sudo -E mise bootstrap
+#
+# Split in two steps to avoid running tool installs (go, staticcheck, ...) as
+# root, which would leave root-owned files under $HOME (e.g. ~/.cache/go-build)
+# that the dev user can't later read/write:
+# - System packages ([bootstrap.packages], e.g. apt:...) need root and don't
+#   touch $HOME, so they stay privileged. -E preserves MISE_*/PATH so root
+#   resolves the same config/data dirs as dev.
+# - Project tools ([tools]) run unprivileged as dev, so any cache/build dirs
+#   they create are dev-owned.
+sudo -E mise bootstrap packages apply
+mise install
 
 # Aliases to start claude in the container
 echo "alias cc='claude'" > /home/dev/.bash_aliases
