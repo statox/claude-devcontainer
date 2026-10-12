@@ -14,32 +14,36 @@ services:
       - claude-home:/home/dev/.claude
       - glab-config:/home/dev/.config/glab-cli
       - mise-state:/home/dev/.local/state/mise
+      - mise-root-state:/root/.local/state/mise
       - claude-desktop-notification-sock:/run/claude-desktop-notification
       - mcp-context7-sock:/run/mcp-context7
       - mcp-thiri-sock:/run/mcp-thiri
       - "${CLAUDE_DEVCONTAINER_HOME}:/home/dev/.claude-devcontainer"
       - "${HOME}/.claude.json:/home/dev/.claude.json"
       - "${HOME}/.netrc:/home/dev/.netrc"
-    # UIDs mapping - Rootless Podman remaps container UIDs through /etc/subuid/subgid
-    # Use keep-id for a 1:1 mapping to have host's values when running useradd in Dockerfile
+    # Rootless Podman remaps container UIDs.
+    # keep-id maps the host user 1:1.
     userns_mode: keep-id
 
 volumes:
-  # Persist Claude session state
+  # Claude session state
   claude-home:
     name: claude-home
-  # Persists gitlab cli authentication
+  # gitlab cli authentication
   glab-config:
     name: glab-config
-  # Persists mise's trust decisions (and other state) across ccc-rebuild.
-  # Not a named volume to avoid `.mise.toml` to be trusted in all repos by default
+  # dev mise state, including trust decisions.
+  # Unnamed: each repo gets its own.
   mise-state:
-  # Socket for notification container communication
+  # root mise state, including trust decisions.
+  # Unnamed: each repo gets its own.
+  mise-root-state:
+  # Socket for the notification container
   claude-desktop-notification-sock:
     name: claude-desktop-notification-sock
-  # Socket for context7 container communication
+  # Socket for the context7 container
   mcp-context7-sock:
     name: mcp-context7-sock
-  # Socket for thiri container communication
+  # Socket for the thiri container
   mcp-thiri-sock:
     name: mcp-thiri-sock

@@ -1,11 +1,10 @@
 #!/bin/bash
 # ccc - Claude Code Containerized
-# Launches (or attaches to) a per-workspace Claude agent container.
+# Starts or attaches to the workspace's Claude agent container.
 #
 #     ccc [-p prompt]
 #
-# -p  run claude as a single-shot prompt inside the container instead
-#     of dropping into a shell
+# -p  run claude with a single prompt instead of opening a shell
 
 set -euo pipefail
 
@@ -21,22 +20,23 @@ done
 
 source "$CLAUDE_DEVCONTAINER_HOME/devcontainer/scripts/lib/env.sh"
 
-# Bootstrap files/dirs the container expects to already exist on the host.
+# Create files the container expects on the host
 [ -e "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
 [ -e "$HOME/.netrc" ] || touch "$HOME/.netrc"
 
-# Start the global singleton services - idempotent if already running.
+# Start the global singleton services. Idempotent.
 # shellcheck disable=SC2086
 $COMPOSE_CMD -f "$COMPOSE_FILE" up $COMPOSE_UP_FLAGS
 
-# Create/start the workspace-scoped agent container - idempotent if already running.
+# Create or start the workspace agent container. Idempotent.
 # shellcheck disable=SC2086
 $COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" up -d $COMPOSE_UP_FLAGS
 
-# Bring the container's config/tooling up to date
+# Provision the container. System packages install as root.
+$COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec -u root agent /usr/local/sbin/provision-root.sh
 $COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec agent /home/dev/provision.sh
 
-# Exec a shell in the agent container or run claude as a single-shot prompt with -p
+# Open a shell, or run claude with -p
 if [ -n "$PROMPT" ]; then
     exec $COMPOSE_CMD -p "$AGENT_COMPOSE_PROJECT_NAME" -f "$AGENT_COMPOSE_FILE" exec agent claude -p "$PROMPT"
 else

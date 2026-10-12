@@ -1,28 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
-# Provisioning for agent container:
+# Agent container provisioning:
 # - Symlink config files
 # - Install MCP
 # - Install claude plugins
-# - Install repo dependencies with `mise`
-# - Create shell aliases in container
+# - Install repo tools with mise
+# - Create shell aliases
 #
-# This runs on every `ccc` and `ccc-rebuild`
-# IMPORTANT:
-# - Make sure to keep steps idempotent (re-run against existing container)
-# - Make sure to keep them as light as possible as they impact the container start time
+# Runs on every `ccc` and `ccc-rebuild`.
+# Keep steps idempotent and fast.
 
-# Share config file between host and container
-# Symlink claude/ config files from this repo into ~/.claude in the container
-# Allows to track all modifications on host
+# Symlink claude/ config files from this repo into ~/.claude.
+# Changes are tracked on the host.
 CLAUDE_HOME="$HOME/.claude"
 REPO_CLAUDE="$HOME/.claude-devcontainer/claude"
 
 mkdir -p "$CLAUDE_HOME"
 
-# If the container created the skills directory before us we remove it before
-# creating the symlink
+# Replace a skills directory created by the container with the symlink
 if [ -d "$CLAUDE_HOME/skills" ] && [ ! -L "$CLAUDE_HOME/skills" ]; then
     rm -rf "$CLAUDE_HOME/skills"
 fi
@@ -30,20 +26,18 @@ fi
 # Symlink the config files and directories from claude/
 if [ -d "$REPO_CLAUDE" ]; then
     for f in "$REPO_CLAUDE"/*; do
-        # Use -n to prevent ln from nesting the file if it already exists
-        # in the container
+        # -n replaces an existing symlink instead of nesting into it
         ln -sfn "$f" "$CLAUDE_HOME/$(basename "$f")"
     done
 fi
 
-# Merge the custom mcp-servers.json config into the final ~/.claude.json of
-# the container.
-# Idempotent, always take the version from mcp-servers.json in case of conflict
+# Merge mcp-servers.json into ~/.claude.json.
+# mcp-servers.json wins on conflict.
 MCP_SERVERS_FILE="$REPO_CLAUDE/mcp-servers.json"
 CLAUDE_JSON="$HOME/.claude.json"
 if [ -f "$MCP_SERVERS_FILE" ]; then
     [ -f "$CLAUDE_JSON" ] || echo '{}' > "$CLAUDE_JSON"
-    # We can't rm ~/.claude.json because it is a mount point, rewrite it instead
+    # ~/.claude.json is a mount point: rewrite it in place
     jq --slurpfile mcp "$MCP_SERVERS_FILE" \
         '.mcpServers = ((.mcpServers // {}) + $mcp[0])' \
         "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp"
@@ -51,16 +45,13 @@ if [ -f "$MCP_SERVERS_FILE" ]; then
     rm "$CLAUDE_JSON.tmp"
 fi
 
-# Install plugins from the custom plugins.json
-# - Marketplaces matched by GitHub source ("owner/repo")
-# - Plugins by their installed "id" ("name@marketplace")
-# Skip already installed marketplaces/plugins
+# Install marketplaces and plugins from plugins.json.
+# Marketplaces match by GitHub source: owner/repo.
+# Plugins match by installed id: name@marketplace.
+# Installed ones are skipped.
 PLUGINS_FILE="$REPO_CLAUDE/plugins.json"
 if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
-    # Run from $HOME, not /workdir: this only manages Claude Code's own
-    # global plugin state, but `claude` resolves through a mise shim which
-    # would otherwise also parse the mounted repo's own mise config and
-    # fail outright if that config isn't trusted yet
+    # Run from $HOME: the claude mise shim must not load the repo's config.
     (
         cd "$HOME"
         known_marketplaces="$(claude plugin marketplace list --json 2>/dev/null || echo '[]')"
@@ -81,19 +72,14 @@ if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
     )
 fi
 
-# Run mise to install tooling if the container has a mise configuration
-# Shows a mise prompt for trusting files.
-# Trust decisions persist in the mise-state volume
-#
-# Split in two steps to avoid running tool installs (go, staticcheck, ...) as
-# root, which would leave root-owned files under $HOME (e.g. ~/.cache/go-build)
-# that the dev user can't later read/write:
-# - System packages ([bootstrap.packages], e.g. apt:...) need root and don't
-#   touch $HOME, so they stay privileged. -E preserves MISE_*/PATH so root
-#   resolves the same config/data dirs as dev.
-# - Project tools ([tools]) run unprivileged as dev, so any cache/build dirs
-#   they create are dev-owned.
-sudo -E mise bootstrap packages apply
+# Install the repo's [tools] as dev.
+# provision-root.sh installs system packages before this script.
+# Paranoid mode: the repo config needs explicit trust.
+# Trust decisions persist in the mise-state volume.
+if (cd /workdir && mise trust --show 2>/dev/null | grep -q ': untrusted$'); then
+    echo "==> Trust prompt 2/2: tools, as dev."
+    echo "    Trusting the repo's mise config installs its [tools] as dev."
+fi
 mise install
 
 # Aliases to start claude in the container

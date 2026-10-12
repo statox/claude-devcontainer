@@ -5,11 +5,9 @@ services:
       args:
         USER_UID: "${DEV_UID}"
         USER_GID: "${DEV_GID}"
-    # Fixed image name allow to share the built image between all workspaces
-    # Avoid rebuilding once per repo
+    # Fixed image name: all workspaces share one image
     image: claude-devcontainer-agent
-    # Keeps the container alive between `ccc` invocations so `exec` has
-    # something to attach to.
+    # Keeps the container running for `ccc` to exec into
     command: ["sleep", "infinity"]
     network_mode: host
     working_dir: /workdir
@@ -18,6 +16,7 @@ services:
       - claude-home:/home/dev/.claude
       - glab-config:/home/dev/.config/glab-cli
       - mise-state:/home/dev/.local/state/mise
+      - mise-root-state:/root/.local/state/mise
       - claude-desktop-notification-sock:/run/claude-desktop-notification
       - mcp-context7-sock:/run/mcp-context7
       - mcp-thiri-sock:/run/mcp-thiri
@@ -26,21 +25,24 @@ services:
       - "${HOME}/.netrc:/home/dev/.netrc"
 
 volumes:
-  # Persist Claude session state
+  # Claude session state
   claude-home:
     name: claude-home
-  # Persists gitlab cli authentication
+  # gitlab cli authentication
   glab-config:
     name: glab-config
-  # Persists mise's trust decisions (and other state) across ccc-rebuild.
-  # Not a named volume to avoid `.mise.toml` to be trusted in all repos by default
+  # dev mise state, including trust decisions.
+  # Unnamed: each repo gets its own.
   mise-state:
-  # Socket for notification container communication
+  # root mise state, including trust decisions.
+  # Unnamed: each repo gets its own.
+  mise-root-state:
+  # Socket for the notification container
   claude-desktop-notification-sock:
     name: claude-desktop-notification-sock
-  # Socket for context7 container communication
+  # Socket for the context7 container
   mcp-context7-sock:
     name: mcp-context7-sock
-  # Socket for thiri container communication
+  # Socket for the thiri container
   mcp-thiri-sock:
     name: mcp-thiri-sock

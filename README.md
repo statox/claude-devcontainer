@@ -265,22 +265,47 @@ The MCP should now be authenticated. (Maybe you need to restart Claude? To be te
 We use [`mise.toml`](./devcontainer/agent/mise.toml) to define all the packages, language runtimes and
 other tools (`shellcheck`, `jq`, ...) which must be installed in the agent container.
 
-The system automatically runs `mise` to pick up repo-specific dependencies: if the
-mounted repo has its own `mise.toml`/`.mise.toml`, it is bootstrapped alongside
-this repo's own tooling on every `ccc`/`ccc-rebuild`.
+The system automatically picks up repo-specific dependencies: if the mounted repo has its own
+`mise.toml`/`.mise.toml`, on every `ccc`/`ccc-rebuild`:
+
+1. Its `[bootstrap.packages]` (e.g. `"apt:default-mysql-client" = "latest"`) are installed by
+   [`provision-root.sh`](./devcontainer/agent/provision-root.sh), run **as root from the host**
+   with `compose exec -u root`.
+2. Its `[tools]` are installed by [`provision.sh`](./devcontainer/agent/provision.sh) as the
+   unprivileged `dev` user.
+
+Only these two sections are supported. Other `[bootstrap]` parts of a repo's config (files,
+dotfiles, repos, hooks, the `bootstrap` task, ...) are **not** applied.
+
+The `dev` user has no `sudo` access in the container: installing a system package means adding
+it to the repo's `[bootstrap.packages]` and running `ccc` again.
 
 ### Trusting a repo's mise config
 
-`mise` requires config files to be explicitly trusted.
-We don't auto-trust the mounted repo's config. `ccc`/`ccc-rebuild` run
-`mise bootstrap` without `--yes` so that the user can accept the files with the mise interactive prompt.
+`mise` runs in [paranoid mode](https://mise.jdx.dev/paranoid.html) in the container:
 
-The decision to trust the files is stored in `mise-state` a nameless docker volume
-so that each repo persist the decision separately.
+- A repo's config is never trusted automatically - `ccc`/`ccc-rebuild` show mise's interactive
+  prompt instead.
+- Trust is bound to the file's contents: after any edit to the repo's mise config (by you or by
+  Claude) you are prompted again on the next `ccc`.
+- Root (system packages) and `dev` (tools) keep separate trust decisions, so the first `ccc` in
+  a repo - and the first one after an edit - prompts **twice**, each prompt preceded by a short
+  explanation. This is deliberate: `dev` (and so Claude) cannot write root's trust decisions.
 
-Note:
-- When running `ccc` non-interactively (e.g. `ccc -p "..."`) mise can't prompt
-  and fails. Run an interactive `ccc` once first to accept the prompt.
+Trust decisions are stored per repo in two nameless docker volumes, `mise-state` (dev) and
+`mise-root-state` (root), so each repo keeps its decisions separately and nothing is trusted
+across repos.
+
+Notes:
+- When running `ccc` non-interactively (e.g. `ccc -p "..."`) mise can't prompt and fails. Run an
+  interactive `ccc` once first to accept the prompts.
+- Upgrading from a version of this setup that used `sudo mise`: run `ccc-rebuild` once (the
+  old image has no `provision-root.sh`, so a plain `ccc` fails). The repo's old `mise-state`
+  volume may also contain root-owned directories that make `mise install` fail with
+  `Permission denied`. Remove it once per repo, from the host:
+  `docker compose -p <project> -f "$CLAUDE_DEVCONTAINER_HOME/devcontainer/docker-compose.agent.yml" down`
+  then `docker volume rm <project>_mise-state` (`<project>` is the agent container's compose
+  project name, e.g. `monorepo-2eba2711`).
 
 ## Desktop notifications
 
