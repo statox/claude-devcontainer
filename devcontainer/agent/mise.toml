@@ -1,5 +1,6 @@
 [bootstrap.packages]
 "apt:bash" = "latest"
+"apt:htop" = "latest"
 "apt:jq" = "latest"
 "apt:less" = "latest"
 "apt:netcat-openbsd" = "latest"
@@ -32,3 +33,6 @@ terraform = "latest"
 gh = "latest"
 "gitlab:gitlab-org/cli" = "latest"
 yamllint = "latest"
+
+# Debug tooling
+btop = "latest"
