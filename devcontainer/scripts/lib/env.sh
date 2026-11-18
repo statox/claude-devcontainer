@@ -40,3 +40,15 @@ export CONTEXT7_ENV_FILE="$MCP_CREDS_ENV_DIR/context7.env"
 # Thiri credentials - same pattern as Context7 above
 export THIRI_ENV_FILE="$MCP_CREDS_ENV_DIR/thiri.env"
 [ -f "$THIRI_ENV_FILE" ] || THIRI_ENV_FILE=/dev/null
+
+# GitHub credentials for the agent container: GH_TOKEN=<fine-grained PAT>.
+# Used by gh and, through it, by git over https.
+export GITHUB_ENV_FILE="$MCP_CREDS_ENV_DIR/github.env"
+[ -f "$GITHUB_ENV_FILE" ] || GITHUB_ENV_FILE=/dev/null
+
+# Git identity for commits made in the container.
+# Defaults to the host's global git identity.
+# Repo-local config still takes precedence.
+export CLAUDE_GIT_USER_NAME CLAUDE_GIT_USER_EMAIL
+CLAUDE_GIT_USER_NAME="${CLAUDE_GIT_USER_NAME:-$(git config --global user.name 2>/dev/null || true)}"
+CLAUDE_GIT_USER_EMAIL="${CLAUDE_GIT_USER_EMAIL:-$(git config --global user.email 2>/dev/null || true)}"

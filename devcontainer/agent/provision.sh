@@ -72,6 +72,21 @@ if [ -f "$PLUGINS_FILE" ] && command -v claude >/dev/null 2>&1; then
     )
 fi
 
+# Global git identity, passed from the host by env.sh.
+# Repo-local config still takes precedence.
+[ -z "${CLAUDE_GIT_USER_NAME:-}" ] || git config --global user.name "$CLAUDE_GIT_USER_NAME"
+[ -z "${CLAUDE_GIT_USER_EMAIL:-}" ] || git config --global user.email "$CLAUDE_GIT_USER_EMAIL"
+
+# git over https to github.com authenticates through gh and $GH_TOKEN.
+# Same config as `gh auth setup-git`, written directly to stay idempotent.
+# Absolute gh path: the mise shim must not load the repo's config.
+if [ -n "${GH_TOKEN:-}" ]; then
+    gh_bin="$(cd "$HOME" && mise which gh)"
+    git config --global --unset-all credential.https://github.com.helper || true
+    git config --global --add credential.https://github.com.helper ''
+    git config --global --add credential.https://github.com.helper "!$gh_bin auth git-credential"
+fi
+
 # Install the repo's [tools] as dev.
 # provision-root.sh installs system packages before this script.
 # Paranoid mode: the repo config needs explicit trust.

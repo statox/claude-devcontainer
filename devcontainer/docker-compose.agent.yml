@@ -23,6 +23,11 @@ services:
       - "${CLAUDE_DEVCONTAINER_HOME}:/home/dev/.claude-devcontainer"
       - "${HOME}/.claude.json:/home/dev/.claude.json"
       - "${HOME}/.netrc:/home/dev/.netrc"
+    env_file:
+      - ${GITHUB_ENV_FILE} # Credentials - see scripts/lib/env.sh
+    environment:
+      CLAUDE_GIT_USER_NAME: "${CLAUDE_GIT_USER_NAME}"
+      CLAUDE_GIT_USER_EMAIL: "${CLAUDE_GIT_USER_EMAIL}"
 
 volumes:
   # Claude session state

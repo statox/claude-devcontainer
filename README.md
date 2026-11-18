@@ -102,6 +102,26 @@ docker ps -a
 docker compose -p <old-project-name> down
 ```
 
+### Git identity and GitHub access
+
+`ccc` copies your host's global git identity (`git config --global user.name/user.email`) into the container's global git config. Override it with the `CLAUDE_GIT_USER_NAME` and `CLAUDE_GIT_USER_EMAIL` env variables. A repo-local identity still takes precedence.
+
+To let the agent use `gh` and push over https, create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens) restricted to the repositories the agent should access, and store it outside the repo:
+
+```shell
+mkdir -p ~/.config/claude-devcontainer
+cat > ~/.config/claude-devcontainer/github.env <<'EOF'
+GH_TOKEN=<your-token>
+EOF
+chmod 600 ~/.config/claude-devcontainer/github.env
+```
+
+The token is injected only into the agent container. `provision.sh` configures git to authenticate to `github.com` through `gh`. Without the file, nothing is configured.
+
+### Working on several related repositories
+
+Clone related repositories side by side in a parent directory and run `ccc` from that parent: all of them are mounted in the same container. Run `ccc` inside one of the repositories when you only need that one.
+
 ### CLI Usage
 
 To use Claude Code as a cli you need to run `ccc`. This command creates the required containers and starts a new shell in the container running Claude Code.
