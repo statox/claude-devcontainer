@@ -1,2 +1,5 @@
 .venv-claude/
 *.tmp
+
+# Enterprise skills avoid publishing on public repo
+claude/skills/synced/
